@@ -2,6 +2,8 @@
 
 # Defines a variant of the SOCWRForm which is appropriate for outer approximation
 
+export SOCWROAPowerModel, SOCWROAForm
+
 @compat abstract type SOCWROAForm <: PMs.SOCWRForm end
 
 const SOCWROAPowerModel = PMs.GenericPowerModel{SOCWROAForm}
