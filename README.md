@@ -3,8 +3,8 @@
 
 Due to the exploritoy nature of PowerModelsAnnex,
 - there is minimal documentation and testing
-- code quality and reliablity may not be high
-- more-or-less anything goes in the annex
+- there are limited code quality and reliablity standards
+- anything goes in the annex, more-or-less
 
 Users should be prepared for features that break.
 
