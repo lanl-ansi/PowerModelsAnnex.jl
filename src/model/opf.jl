@@ -2,7 +2,7 @@ export post_ac_opf, post_dc_opf
 
 """
 Given a JuMP model and a PowerModels network data structure, 
-Builds an AC-OPF formulation of the given and returns the JuMP model
+Builds an AC-OPF formulation of the given data and returns the JuMP model
 """
 function post_ac_opf(data::Dict{String,Any}, model=Model())
     ref = PMs.build_ref(data)
@@ -108,9 +108,10 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
 end
 
 
+
 """
 Given a JuMP model and a PowerModels network data structure, 
-Builds an DC-OPF formulation of the given and returns the JuMP model
+Builds an DC-OPF formulation of the given data and returns the JuMP model
 """
 function post_dc_opf(data::Dict{String,Any}, model=Model())
     ref = PMs.build_ref(data)
@@ -165,10 +166,7 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
 
         # Line Flow
         g, b = PMs.calc_branch_y(branch)
-        tr, ti = PMs.calc_branch_t(branch)
-        c = branch["br_b"]
-        tm = branch["tap"]^2
-        
+
         @constraint(model, p_fr == -b*(t_fr - t_to))
 
         # Phase Angle Difference Limit
@@ -189,3 +187,4 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
 
     return model
 end
+
