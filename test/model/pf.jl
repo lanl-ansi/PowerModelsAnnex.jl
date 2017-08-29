@@ -17,9 +17,9 @@ end
         for (i, bus) in data["bus"]
             if bus["bus_type"] != 4
                 index = parse(Int, i)
-                #println("$i, $(getvalue(pf_model[:t][index])), $(pm_sol["bus"][i]["va"])")
-                @test isapprox(getvalue(pf_model[:t][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
-                @test isapprox(getvalue(pf_model[:v][index]), pm_sol["bus"][i]["vm"])
+                #println("$i, $(getvalue(pf_model[:va][index])), $(pm_sol["bus"][i]["va"])")
+                @test isapprox(getvalue(pf_model[:va][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
+                @test isapprox(getvalue(pf_model[:vm][index]), pm_sol["bus"][i]["vm"])
             end
         end
 
@@ -60,8 +60,8 @@ end
             for (i, bus) in data["bus"]
                 if bus["bus_type"] != 4
                     index = parse(Int, i)
-                    #println("$i, $(getvalue(pf_model[:t][index])), $(pm_sol["bus"][i]["va"])")
-                    @test isapprox(getvalue(pf_model[:t][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
+                    #println("$i, $(getvalue(pf_model[:va][index])), $(pm_sol["bus"][i]["va"])")
+                    @test isapprox(getvalue(pf_model[:va][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
                 end
             end
 
