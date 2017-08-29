@@ -16,24 +16,8 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
     @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
     @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
 
-    # pmin, qmin computations need to be moved to ref in power models
-    pmin = Dict([(a, 0.0) for a in ref[:arcs_dc]])
-    pmax = Dict([(a, 0.0) for a in ref[:arcs_dc]])
-    qmin = Dict([(a, 0.0) for a in ref[:arcs_dc]])
-    qmax = Dict([(a, 0.0) for a in ref[:arcs_dc]])
-    for (l,i,j) in ref[:arcs_from_dc]
-        qmin[(l,i,j)] =  ref[:dcline][l]["qminf"]
-        qmax[(l,i,j)] =  ref[:dcline][l]["qmaxf"]
-        qmin[(l,j,i)] =  ref[:dcline][l]["qmint"]
-        qmax[(l,j,i)] =  ref[:dcline][l]["qmaxt"]
-        pmin[(l,i,j)] =  ref[:dcline][l]["pminf"]
-        pmax[(l,i,j)] =  ref[:dcline][l]["pmaxf"]
-        pmin[(l,j,i)] =  ref[:dcline][l]["pmint"]
-        pmax[(l,j,i)] =  ref[:dcline][l]["pmaxt"]
-    end
-
-    @variable(model, pmin[(l,i,j)] <= p_dc[(l,i,j) in ref[:arcs_dc]] <= pmax[(l,i,j)])
-    @variable(model, qmin[(l,i,j)] <= q_dc[(l,i,j) in ref[:arcs_dc]] <= qmax[(l,i,j)])
+    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
+    @variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
     @objective(model, Min, 
@@ -61,6 +45,7 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
     end
 
     for (i,branch) in ref[:branch]
+        # AC Line Flow Constraint
         f_idx = (i, branch["f_bus"], branch["t_bus"])
         t_idx = (i, branch["t_bus"], branch["f_bus"])
 
@@ -125,17 +110,7 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
     p_expr = Dict([((l,i,j), 1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]])
     p_expr = merge(p_expr, Dict([((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]]))
 
-    # pmin, qmin computations need to be moved to ref in power models
-    pmin = Dict([(a, 0.0) for a in ref[:arcs_dc]])
-    pmax = Dict([(a, 0.0) for a in ref[:arcs_dc]])
-    for (l,i,j) in ref[:arcs_from_dc]
-        pmin[(l,i,j)] =  ref[:dcline][l]["pminf"]
-        pmax[(l,i,j)] =  ref[:dcline][l]["pmaxf"]
-        pmin[(l,j,i)] =  ref[:dcline][l]["pmint"]
-        pmax[(l,j,i)] =  ref[:dcline][l]["pmaxt"]
-    end
-
-    @variable(model, pmin[(l,i,j)] <= p_dc[(l,i,j) in ref[:arcs_dc]] <= pmax[(l,i,j)])
+    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
     @objective(model, Min, 
@@ -158,6 +133,7 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
     end
 
     for (i,branch) in ref[:branch]
+        # AC Line Flow Constraint
         f_idx = (i, branch["f_bus"], branch["t_bus"])
 
         p_fr = p[f_idx]
