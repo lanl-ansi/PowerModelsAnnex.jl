@@ -17,19 +17,19 @@ end
         for (i, bus) in data["bus"]
             if bus["bus_type"] != 4
                 index = parse(Int, i)
-                #println("$i, $(getvalue(pf_model[:t][index])), $(pm_sol["bus"][i]["va"]*pi/180)")
-                @test isapprox(getvalue(pf_model[:t][index]), pm_sol["bus"][i]["va"]*pi/180; atol = 1e-8)
-                @test isapprox(getvalue(pf_model[:v][index]), pm_sol["bus"][i]["vm"])
+                #println("$i, $(getvalue(pf_model[:va][index])), $(pm_sol["bus"][i]["va"])")
+                @test isapprox(getvalue(pf_model[:va][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
+                @test isapprox(getvalue(pf_model[:vm][index]), pm_sol["bus"][i]["vm"])
             end
         end
 
         for (i, gen) in data["gen"]
             if gen["gen_status"] != 0
                 index = parse(Int, i)
-                #println("$i, $(getvalue(pf_model[:pg][index])), $(pm_sol["gen"][i]["pg"]/base_mva)")
-                @test isapprox(getvalue(pf_model[:pg][index]), pm_sol["gen"][i]["pg"]/base_mva; atol = 1e-8)
+                #println("$i, $(getvalue(pf_model[:pg][index])), $(pm_sol["gen"][i]["pg"])")
+                @test isapprox(getvalue(pf_model[:pg][index]), pm_sol["gen"][i]["pg"]; atol = 1e-8)
                 # multiple generators at one bus can cause this to be non-unqiue
-                #@test isapprox(getvalue(pf_model[:qg][index]), pm_sol["gen"][i]["qg"]/base_mva)
+                #@test isapprox(getvalue(pf_model[:qg][index]), pm_sol["gen"][i]["qg"])
             end
         end
     end
@@ -60,16 +60,16 @@ end
             for (i, bus) in data["bus"]
                 if bus["bus_type"] != 4
                     index = parse(Int, i)
-                    #println("$i, $(getvalue(pf_model[:t][index])), $(pm_sol["bus"][i]["va"]*pi/180)")
-                    @test isapprox(getvalue(pf_model[:t][index]), pm_sol["bus"][i]["va"]*pi/180; atol = 1e-8)
+                    #println("$i, $(getvalue(pf_model[:va][index])), $(pm_sol["bus"][i]["va"])")
+                    @test isapprox(getvalue(pf_model[:va][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
                 end
             end
 
             for (i, gen) in data["gen"]
                 if gen["gen_status"] != 0
                     index = parse(Int, i)
-                    #println("$i, $(getvalue(pf_model[:pg][index])), $(pm_sol["gen"][i]["pg"]/base_mva)")
-                    @test isapprox(getvalue(pf_model[:pg][index]), pm_sol["gen"][i]["pg"]/base_mva)
+                    #println("$i, $(getvalue(pf_model[:pg][index])), $(pm_sol["gen"][i]["pg"])")
+                    @test isapprox(getvalue(pf_model[:pg][index]), pm_sol["gen"][i]["pg"])
                 end
             end
         else
