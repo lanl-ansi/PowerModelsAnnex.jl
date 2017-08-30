@@ -30,3 +30,6 @@ case_files = [
 include("model/pf.jl")
 include("model/opf.jl")
 
+include("pglib/api.jl")
+include("pglib/sad.jl")
+
