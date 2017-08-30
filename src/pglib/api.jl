@@ -1,9 +1,4 @@
-export APIACPForm, APIACPPowerModel, run_api_opf
-
-@compat abstract type APIACPForm <: PMs.AbstractACPForm end
-
-const APIACPPowerModel = PMs.GenericPowerModel{APIACPForm}
-
+export run_api_opf
 
 ""
 function run_api_opf(file, model_constructor, solver; kwargs...)
@@ -59,11 +54,6 @@ function post_api_opf(pm::GenericPowerModel)
 end
 
 
-
-"default AC constructor"
-APIACPPowerModel(data::Dict{String,Any}; kwargs...) =
-    PMs.GenericPowerModel(data, APIACPForm; kwargs...)
-
 "variable: load_factor >= 1.0"
 function variable_load_factor(pm::GenericPowerModel)
     pm.var[:load_factor] = @variable(pm.model,
@@ -102,7 +92,7 @@ function objective_max_loading_gen_output(pm::GenericPowerModel)
 end
 
 ""
-function bounds_tighten_voltage(pm::APIACPPowerModel; epsilon = 0.001)
+function bounds_tighten_voltage{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}; epsilon = 0.001)
     for (i,bus) in pm.ref[:bus]
         v = pm.var[:vm][i]
         setupperbound(v, bus["vmax"]*(1.0-epsilon))
@@ -111,7 +101,7 @@ function bounds_tighten_voltage(pm::APIACPPowerModel; epsilon = 0.001)
 end
 
 ""
-function upperbound_negative_active_generation(pm::APIACPPowerModel)
+function upperbound_negative_active_generation(pm::GenericPowerModel)
     for (i,gen) in pm.ref[:gen]
         if gen["pmax"] <= 0
             pg = pm.var[:pg][i]
@@ -121,7 +111,7 @@ function upperbound_negative_active_generation(pm::APIACPPowerModel)
 end
 
 ""
-function constraint_kcl_shunt_scaled(pm::APIACPPowerModel, bus)
+function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}, bus)
     i = bus["index"]
     bus_arcs = pm.ref[:bus_arcs][i]
     bus_gens = pm.ref[:bus_gens][i]
@@ -144,7 +134,7 @@ function constraint_kcl_shunt_scaled(pm::APIACPPowerModel, bus)
 end
 
 ""
-function get_api_solution(pm::APIACPPowerModel)
+function get_api_solution(pm::GenericPowerModel)
     # super fallback
     sol = PMs.init_solution(pm)
     PMs.add_bus_voltage_setpoint(sol, pm)
@@ -158,7 +148,7 @@ function get_api_solution(pm::APIACPPowerModel)
 end
 
 ""
-function add_bus_demand_setpoint(sol, pm::APIACPPowerModel)
+function add_bus_demand_setpoint(sol, pm::GenericPowerModel)
     mva_base = pm.data["baseMVA"]
     PMs.add_setpoint(sol, pm, "bus", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item) -> item["pd"] > 0 && item["qd"] > 0 ? x*item["pd"] : item["pd"], extract_var = (var,idx,item) -> var)
     PMs.add_setpoint(sol, pm, "bus", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item) -> item["qd"], extract_var = (var,idx,item) -> var)
