@@ -20,29 +20,41 @@ function PMs.objective_min_fuel_cost{T <: SOCWROAForm}(pm::GenericPowerModel{T})
 
     from_idx = Dict(arc[1] => arc for arc in pm.ref[:arcs_from_dc])
 
-    pg_sqr = pm.var[:pg_sqr] = @variable(pm.model, 
-        [i in keys(pm.ref[:gen])], basename="pg_sqr",
-        lowerbound = pm.ref[:gen][i]["pmin"]^2,
-        upperbound = pm.ref[:gen][i]["pmax"]^2
-    )
+    pm.var[:pg_sqr] = Dict{Int, Any}()
+    @expression(pm.model, gen_cost, 0)
     for (i, gen) in pm.ref[:gen]
-        @NLconstraint(pm.model, sqrt((2*pg[i])^2 + (pg_sqr[i]-1)^2) <= pg_sqr[i]+1)
+        if gen["cost"][1] != 0.0
+            pg_sqr = pm.var[:pg_sqr][i] = @variable(pm.model, 
+                basename="pg_sqr",
+                lowerbound = pm.ref[:gen][i]["pmin"]^2,
+                upperbound = pm.ref[:gen][i]["pmax"]^2
+            )
+            @NLconstraint(pm.model, sqrt((2*pg[i])^2 + (pg_sqr-1)^2) <= pg_sqr+1)
+            gen_cost = gen_cost + gen["cost"][1]*pg_sqr + gen["cost"][2]*pg[i] + gen["cost"][3]
+        else
+            gen_cost = gen_cost + gen["cost"][2]*pg[i] + gen["cost"][3]
+        end
     end
 
-    dc_p_sqr = pm.var[:dc_p_sqr] = @variable(pm.model, 
-        dc_p_sqr[i in keys(pm.ref[:dcline])], basename="dc_p_sqr",
-        lowerbound = pm.ref[:dcline][i]["pminf"]^2,
-        upperbound = pm.ref[:dcline][i]["pmaxf"]^2
-    )
+    pm.var[:dc_p_sqr] = Dict{Int, Any}()
+    @expression(pm.model, dcline_cost, 0)
     for (i, dcline) in pm.ref[:dcline]
-        @NLconstraint(pm.model, sqrt((2*dc_p[from_idx[i]])^2 + (dc_p_sqr[i]-1)^2) <= dc_p_sqr[i]+1)
+        if dcline["cost"][1] != 0.0
+            dc_p_sqr = pm.var[:dc_p_sqr][i] = @variable(pm.model, 
+                basename="dc_p_sqr",
+                lowerbound = pm.ref[:dcline][i]["pminf"]^2,
+                upperbound = pm.ref[:dcline][i]["pmaxf"]^2
+            )
+            @NLconstraint(pm.model, sqrt((2*dc_p[from_idx[i]])^2 + (dc_p_sqr-1)^2) <= dc_p_sqr+1)
+            dcline_cost = dcline_cost + dcline["cost"][1]*dc_p_sqr^2 + dcline["cost"][2]*dc_p[from_idx[i]] + dcline["cost"][3]
+        else
+            dcline_cost = dcline_cost + dcline["cost"][2]*dc_p[from_idx[i]] + dcline["cost"][3]
+        end
     end
 
-    return @objective(pm.model, Min,
-        sum( gen["cost"][1]*pg_sqr[i] + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in pm.ref[:gen]) +
-        sum(dcline["cost"][1]*dc_p_sqr[i]^2 + dcline["cost"][2]*dc_p[from_idx[i]] + dcline["cost"][3] for (i,dcline) in pm.ref[:dcline])
-    )
+    return @objective(pm.model, Min, gen_cost + dcline_cost)
 end
+
 
 function PMs.constraint_voltage{T <: SOCWROAForm}(pm::GenericPowerModel{T})
     w = pm.var[:w]
