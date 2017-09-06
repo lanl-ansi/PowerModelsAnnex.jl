@@ -1,4 +1,4 @@
-export post_ac_pf, post_dc_pf
+export post_ac_pf, post_soc_pf, post_dc_pf
 
 """
 Given a JuMP model and a PowerModels network data structure, 
@@ -100,6 +100,117 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
         # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
         @constraint(model, vm[dcline["t_bus"]] <= dcline["vt"] + epsilon)
         @constraint(model, vm[dcline["t_bus"]] >= dcline["vt"] - epsilon)
+    end
+
+    return model
+end
+
+
+"""
+Given a JuMP model and a PowerModels network data structure, 
+Builds an SOC-PF formulation of the given data and returns the JuMP model
+"""
+function post_soc_pf(data::Dict{String,Any}, model=Model())
+    ref = PMs.build_ref(data)
+    epsilon = 0.00001
+
+    @variable(model, w[i in keys(ref[:bus])] >= 0, start=1.001)
+    @variable(model, wr[bp in keys(ref[:buspairs])], start=1.0)
+    @variable(model, wi[bp in keys(ref[:buspairs])])
+
+    @variable(model, pg[i in keys(ref[:gen])])
+    @variable(model, qg[i in keys(ref[:gen])])
+
+    @variable(model, p[(l,i,j) in ref[:arcs]])
+    @variable(model, q[(l,i,j) in ref[:arcs]])
+
+    @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
+
+    for (i,j) in keys(ref[:buspairs])
+        # Voltage Product Relaxation
+        @constraint(model, wr[(i,j)]^2 + wi[(i,j)]^2 <= w[i]*w[j])
+    end
+
+    for (i,bus) in ref[:ref_buses]
+        # Refrence Bus
+        @constraint(model, w[i] == bus["vm"]^2)
+    end
+
+    for (i,bus) in ref[:bus]
+        # Bus KCL
+        @constraint(model, 
+            sum(p[a] for a in ref[:bus_arcs][i]) + 
+            sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
+            sum(pg[g] for g in ref[:bus_gens][i]) - bus["pd"] - bus["gs"]*w[i]
+        )
+        @constraint(model, 
+            sum(q[a] for a in ref[:bus_arcs][i]) + 
+            sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
+            sum(qg[g] for g in ref[:bus_gens][i]) - bus["qd"] + bus["bs"]*w[i]
+        )
+
+        # PV Bus Constraints
+        if length(ref[:bus_gens][i]) > 0 && !(i in keys(ref[:ref_buses]))
+            # this assumes inactive generators are filtered out of bus_gens
+            @assert bus["bus_type"] == 2
+
+            # @constraint(model, w[i] == bus["vm"]^2)
+            # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
+            @constraint(model, w[i] <= (bus["vm"] + epsilon)^2)
+            @constraint(model, w[i] >= (bus["vm"] - epsilon)^2)
+
+            for j in ref[:bus_gens][i]
+                @constraint(model, pg[j] == ref[:gen][j]["pg"])
+            end
+        end
+    end
+
+    for (i,branch) in ref[:branch]
+        # AC Line Flow Constraint
+        f_idx = (i, branch["f_bus"], branch["t_bus"])
+        t_idx = (i, branch["t_bus"], branch["f_bus"])
+        bp_idx = (branch["f_bus"], branch["t_bus"])
+
+        p_fr = p[f_idx]
+        q_fr = q[f_idx]
+        p_to = p[t_idx]
+        q_to = q[t_idx]
+
+        w_fr = w[branch["f_bus"]]
+        w_to = w[branch["t_bus"]]
+        wr_br = wr[bp_idx]
+        wi_br = wi[bp_idx]
+
+        g, b = PMs.calc_branch_y(branch)
+        tr, ti = PMs.calc_branch_t(branch)
+        c = branch["br_b"]
+        tm = branch["tap"]^2
+
+        @constraint(model, p_fr == g/tm*w_fr + (-g*tr+b*ti)/tm*(wr_br) + (-b*tr-g*ti)/tm*(wi_br) )
+        @constraint(model, q_fr == -(b+c/2)/tm*w_fr - (-b*tr-g*ti)/tm*(wr_br) + (-g*tr+b*ti)/tm*(wi_br) )
+
+        @constraint(model, p_to == g*w_to + (-g*tr-b*ti)/tm*(wr_br) + (-b*tr+g*ti)/tm*(-wi_br) )
+        @constraint(model, q_to == -(b+c/2)*w_to - (-b*tr+g*ti)/tm*(wr_br) + (-g*tr-b*ti)/tm*(-wi_br) )
+    end
+
+    for (i,dcline) in ref[:dcline]
+        # DC Line Flow Constraint
+        f_idx = (i, dcline["f_bus"], dcline["t_bus"])
+        t_idx = (i, dcline["t_bus"], dcline["f_bus"])
+
+        @constraint(model, p_dc[f_idx] == dcline["pf"])
+        @constraint(model, p_dc[t_idx] == dcline["pt"])
+
+        # @constraint(model, w[dcline["f_bus"]] == dcline["vf"]^2)
+        # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
+        @constraint(model, w[dcline["f_bus"]] <= (dcline["vf"] + epsilon)^2)
+        @constraint(model, w[dcline["f_bus"]] >= (dcline["vf"] - epsilon)^2)
+
+        # @constraint(model, w[dcline["t_bus"]] == dcline["vt"])
+        # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
+        @constraint(model, w[dcline["t_bus"]] <= (dcline["vt"] + epsilon)^2)
+        @constraint(model, w[dcline["t_bus"]] >= (dcline["vt"] - epsilon)^2)
     end
 
     return model
