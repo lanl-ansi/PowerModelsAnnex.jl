@@ -5,7 +5,8 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an AC-OPF formulation of the given data and returns the JuMP model
 """
 function post_ac_opf(data::Dict{String,Any}, model=Model())
-    ref = PMs.build_ref(data)
+    @assert !(data["multinetwork"])
+    ref = PMs.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
     @variable(model, ref[:bus][i]["vmin"] <= vm[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"], start=1.0)
@@ -97,7 +98,8 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an SOC-OPF formulation of the given data and returns the JuMP model
 """
 function post_soc_opf(data::Dict{String,Any}, model=Model())
-    ref = PMs.build_ref(data)
+    @assert !(data["multinetwork"])
+    ref = PMs.build_ref(data)[:nw][0]
 
     @variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
 
@@ -193,7 +195,8 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an DC-OPF formulation of the given data and returns the JuMP model
 """
 function post_dc_opf(data::Dict{String,Any}, model=Model())
-    ref = PMs.build_ref(data)
+    @assert !(data["multinetwork"])
+    ref = PMs.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
 
