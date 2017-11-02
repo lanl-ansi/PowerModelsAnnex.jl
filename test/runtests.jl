@@ -15,7 +15,6 @@ using Base.Test
 # default setup for solvers
 ipopt_solver = IpoptSolver(tol=1e-6, print_level=0)
 
-
 # this will work because PowerModels is a dependency
 case_files = [
     "../../PowerModels/test/data/case3.m",

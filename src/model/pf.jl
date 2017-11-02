@@ -5,8 +5,8 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an AC-PF formulation of the given data and returns the JuMP model
 """
 function post_ac_pf(data::Dict{String,Any}, model=Model())
-    ref = PMs.build_ref(data)
-    epsilon = 0.00001
+    @assert !(data["multinetwork"])
+    ref = PMs.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
     @variable(model, vm[i in keys(ref[:bus])] >= 0, start=1.0)
@@ -22,6 +22,7 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
+        @assert bus["bus_type"] == 3
         @constraint(model, va[i] == 0)
         @constraint(model, vm[i] == bus["vm"])
     end
@@ -44,10 +45,7 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
             # this assumes inactive generators are filtered out of bus_gens
             @assert bus["bus_type"] == 2
 
-            # @constraint(model, vm[i] == bus["vm"])
-            # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
-            @constraint(model, vm[i] <= bus["vm"] + epsilon)
-            @constraint(model, vm[i] >= bus["vm"] - epsilon)
+            @constraint(model, vm[i] == bus["vm"])
 
             for j in ref[:bus_gens][i]
                 @constraint(model, pg[j] == ref[:gen][j]["pg"])
@@ -91,15 +89,15 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
         @constraint(model, p_dc[f_idx] == dcline["pf"])
         @constraint(model, p_dc[t_idx] == dcline["pt"])
 
-        # @constraint(model, vm[dcline["f_bus"]] == dcline["vf"])
-        # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
-        @constraint(model, vm[dcline["f_bus"]] <= dcline["vf"] + epsilon)
-        @constraint(model, vm[dcline["f_bus"]] >= dcline["vf"] - epsilon)
+        f_bus = ref[:bus][dcline["f_bus"]]
+        if f_bus["bus_type"] == 1
+            @constraint(model, vm[dcline["f_bus"]] == f_bus["vm"])
+        end
 
-        # @constraint(model, vm[dcline["t_bus"]] == dcline["vt"])
-        # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
-        @constraint(model, vm[dcline["t_bus"]] <= dcline["vt"] + epsilon)
-        @constraint(model, vm[dcline["t_bus"]] >= dcline["vt"] - epsilon)
+        t_bus = ref[:bus][dcline["t_bus"]]
+        if t_bus["bus_type"] == 1
+            @constraint(model, vm[dcline["t_bus"]] == t_bus["vm"])
+        end
     end
 
     return model
@@ -111,8 +109,8 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an SOC-PF formulation of the given data and returns the JuMP model
 """
 function post_soc_pf(data::Dict{String,Any}, model=Model())
-    ref = PMs.build_ref(data)
-    epsilon = 0.00001
+    @assert !(data["multinetwork"])
+    ref = PMs.build_ref(data)[:nw][0]
 
     @variable(model, w[i in keys(ref[:bus])] >= 0, start=1.001)
     @variable(model, wr[bp in keys(ref[:buspairs])], start=1.0)
@@ -134,6 +132,7 @@ function post_soc_pf(data::Dict{String,Any}, model=Model())
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
+        @assert bus["bus_type"] == 3
         @constraint(model, w[i] == bus["vm"]^2)
     end
 
@@ -155,11 +154,7 @@ function post_soc_pf(data::Dict{String,Any}, model=Model())
             # this assumes inactive generators are filtered out of bus_gens
             @assert bus["bus_type"] == 2
 
-            # @constraint(model, w[i] == bus["vm"]^2)
-            # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
-            @constraint(model, w[i] <= (bus["vm"] + epsilon)^2)
-            @constraint(model, w[i] >= (bus["vm"] - epsilon)^2)
-
+            @constraint(model, w[i] == bus["vm"]^2)
             for j in ref[:bus_gens][i]
                 @constraint(model, pg[j] == ref[:gen][j]["pg"])
             end
@@ -202,15 +197,15 @@ function post_soc_pf(data::Dict{String,Any}, model=Model())
         @constraint(model, p_dc[f_idx] == dcline["pf"])
         @constraint(model, p_dc[t_idx] == dcline["pt"])
 
-        # @constraint(model, w[dcline["f_bus"]] == dcline["vf"]^2)
-        # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
-        @constraint(model, w[dcline["f_bus"]] <= (dcline["vf"] + epsilon)^2)
-        @constraint(model, w[dcline["f_bus"]] >= (dcline["vf"] - epsilon)^2)
+        f_bus = ref[:bus][dcline["f_bus"]]
+        if f_bus["bus_type"] == 1
+            @constraint(model, w[dcline["f_bus"]] == f_bus["vm"]^2)
+        end
 
-        # @constraint(model, w[dcline["t_bus"]] == dcline["vt"])
-        # soft equality needed becouse vm in file may not be precice enough to ensure feasiblity
-        @constraint(model, w[dcline["t_bus"]] <= (dcline["vt"] + epsilon)^2)
-        @constraint(model, w[dcline["t_bus"]] >= (dcline["vt"] - epsilon)^2)
+        t_bus = ref[:bus][dcline["t_bus"]]
+        if t_bus["bus_type"] == 1
+            @constraint(model, w[dcline["t_bus"]] == t_bus["vm"]^2)
+        end
     end
 
     return model
@@ -222,7 +217,8 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an DC-PF formulation of the given data and returns the JuMP model
 """
 function post_dc_pf(data::Dict{String,Any}, model=Model())
-    ref = PMs.build_ref(data)
+    @assert !(data["multinetwork"])
+    ref = PMs.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
 
