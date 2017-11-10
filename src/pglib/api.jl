@@ -13,7 +13,7 @@ function post_api_opf(pm::GenericPowerModel)
     PMs.variable_generation(pm, bounded = false)
     upperbound_negative_active_generation(pm)
 
-    PMs.variable_line_flow(pm)
+    PMs.variable_branch_flow(pm)
     PMs.variable_dcline_flow(pm)
 
     variable_load_factor(pm)
@@ -24,39 +24,39 @@ function post_api_opf(pm::GenericPowerModel)
 
     PMs.constraint_voltage(pm)
 
-    for (i,bus) in pm.ref[:ref_buses]
-        PMs.constraint_theta_ref(pm, bus)
+    for i in ids(pm, :ref_buses)
+        PMs.constraint_theta_ref(pm, i)
     end
 
-    for (i,gen) in pm.ref[:gen]
-        pg = pm.var[:pg][i]
+    for (i,gen) in ref(pm, :gen)
+        pg = var(pm, :pg, i)
         @constraint(pm.model, pg >= gen["pmin"])
     end
 
-    for (i,bus) in pm.ref[:bus]
-        constraint_kcl_shunt_scaled(pm, bus)
+    for i in ids(pm, :bus)
+        constraint_kcl_shunt_scaled(pm, i)
     end
 
-    for (i,branch) in pm.ref[:branch]
-        PMs.constraint_ohms_yt_from(pm, branch)
-        PMs.constraint_ohms_yt_to(pm, branch)
+    for i in ids(pm, :branch)
+        PMs.constraint_ohms_yt_from(pm, i)
+        PMs.constraint_ohms_yt_to(pm, i)
 
-        PMs.constraint_voltage_angle_difference(pm, branch)
+        PMs.constraint_voltage_angle_difference(pm, i)
 
-        constraint_thermal_limit_from(pm, branch; scale = 0.999)
-        constraint_thermal_limit_to(pm, branch; scale = 0.999)
+        constraint_thermal_limit_from(pm, i; scale = 0.999)
+        constraint_thermal_limit_to(pm, i; scale = 0.999)
     end
 
 
-    for (i,dcline) in pm.ref[:dcline]
-        PMs.constraint_dcline(pm, dcline)
+    for i in ids(pm, :dcline)
+        PMs.constraint_dcline(pm, i)
     end
 end
 
 
 "variable: load_factor >= 1.0"
 function variable_load_factor(pm::GenericPowerModel)
-    pm.var[:load_factor] = @variable(pm.model,
+    pm.var[:nw][pm.cnw][:load_factor] = @variable(pm.model,
         basename="load_factor",
         lowerbound=1.0,
         start = 1.0
@@ -65,16 +65,16 @@ end
 
 "objective: Max. load_factor"
 function objective_max_loading(pm::GenericPowerModel)
-    @objective(pm.model, Max, pm.var[:load_factor])
+    @objective(pm.model, Max, var(pm, :load_factor))
 end
 
 ""
 function objective_max_loading_voltage_norm(pm::GenericPowerModel)
     # Seems to create too much reactive power and makes even small models hard to converge
-    load_factor = pm.var[:load_factor]
+    load_factor = var(pm, :load_factor)
 
-    scale = length(pm.ref[:bus])
-    v = pm.var[:vm]
+    scale = length(ids(pm, :bus))
+    v = var(pm, :vm)
 
     @objective(pm.model, Max, 10*scale*load_factor - sum(((bus["vmin"] + bus["vmax"])/2 - v[i])^2 for (i,bus) in pm.ref[:bus]))
 end
@@ -82,19 +82,19 @@ end
 ""
 function objective_max_loading_gen_output(pm::GenericPowerModel)
     # Works but adds unnecessary runtime
-    load_factor = pm.var[:load_factor]
+    load_factor = var(pm, :load_factor)
 
-    scale = length(pm.ref[:gen])
-    pg = pm.var[:pg]
-    qg = pm.var[:qg]
+    scale = length(ids(pm,:gen))
+    pg = var(pm, :pg)
+    qg = var(pm, :qg)
 
     @NLobjective(pm.model, Max, 100*scale*load_factor - sum( (pg[i]^2 - (2*qg[i])^2)^2 for (i,gen) in pm.ref[:gen] ))
 end
 
 ""
 function bounds_tighten_voltage{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}; epsilon = 0.001)
-    for (i,bus) in pm.ref[:bus]
-        v = pm.var[:vm][i]
+    for (i,bus) in ref(pm, :bus)
+        v = var(pm, :vm, i)
         setupperbound(v, bus["vmax"]*(1.0-epsilon))
         setlowerbound(v, bus["vmin"]*(1.0+epsilon))
     end
@@ -102,26 +102,26 @@ end
 
 ""
 function upperbound_negative_active_generation(pm::GenericPowerModel)
-    for (i,gen) in pm.ref[:gen]
+    for (i,gen) in ref(pm, :gen)
         if gen["pmax"] <= 0
-            pg = pm.var[:pg][i]
+            pg = var(pm, :pg, i)
             setupperbound(pg, gen["pmax"])
         end
     end
 end
 
 ""
-function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}, bus)
-    i = bus["index"]
-    bus_arcs = pm.ref[:bus_arcs][i]
-    bus_gens = pm.ref[:bus_gens][i]
+function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}, n::Int, i::Int)
+    bus = pm.ref[:nw][n][:bus][i]
+    bus_arcs = pm.ref[:nw][n][:bus_arcs][i]
+    bus_gens = pm.ref[:nw][n][:bus_gens][i]
 
-    load_factor = pm.var[:load_factor]
-    v = pm.var[:vm]
-    p = pm.var[:p]
-    q = pm.var[:q]
-    pg = pm.var[:pg]
-    qg = pm.var[:qg]
+    load_factor = pm.var[:nw][n][:load_factor]
+    v = pm.var[:nw][n][:vm]
+    p = pm.var[:nw][n][:p]
+    q = pm.var[:nw][n][:q]
+    pg = pm.var[:nw][n][:pg]
+    qg = pm.var[:nw][n][:qg]
 
     if bus["pd"] > 0 && bus["qd"] > 0
         @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - bus["pd"]*load_factor - bus["gs"]*v[i]^2)
@@ -132,19 +132,17 @@ function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerM
 
     @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - bus["qd"] + bus["bs"]*v[i]^2)
 end
+constraint_kcl_shunt_scaled(pm::GenericPowerModel, i::Int) = constraint_kcl_shunt_scaled(pm, pm.cnw, i)
+
 
 ""
-function get_api_solution(pm::GenericPowerModel)
-    # super fallback
-    sol = PMs.init_solution(pm)
+function get_api_solution(pm::GenericPowerModel, sol::Dict{String,Any})
     PMs.add_bus_voltage_setpoint(sol, pm)
     PMs.add_generator_power_setpoint(sol, pm)
     PMs.add_branch_flow_setpoint(sol, pm)
 
     # extension
     add_bus_demand_setpoint(sol, pm)
-
-    return sol
 end
 
 ""
