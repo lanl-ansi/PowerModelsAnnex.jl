@@ -26,9 +26,10 @@ case_files = [
     "../../PowerModels/test/data/case30.m"
 ]
 
-include("model/pf.jl")
-include("model/opf.jl")
+include("form/wr.jl")
 
 include("pglib/api.jl")
 include("pglib/sad.jl")
 
+include("model/pf.jl")
+include("model/opf.jl")
