@@ -80,3 +80,20 @@ function PMs.constraint_thermal_limit_to{T <: SOCWROAForm}(pm::GenericPowerModel
     @NLconstraint(pm.model, sqrt(p_to^2 + q_to^2) <= rate_a)
 end
 
+
+
+# Defines a variant of the SOCWRForm which forces the NL solver path
+
+export NLSOCWRPowerModel, NLSOCWROAForm
+
+@compat abstract type NLSOCWROAForm <: PMs.SOCWRForm end
+
+const NLSOCWRPowerModel = PMs.GenericPowerModel{NLSOCWROAForm}
+
+"default NLSOCWROAForm constructor"
+NLSOCWRPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, NLSOCWROAForm; kwargs...)
+
+
+
+
+

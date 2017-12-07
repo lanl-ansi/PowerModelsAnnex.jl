@@ -9,6 +9,7 @@ PMs = PowerModels
 
 include("form/acr.jl")
 include("form/wr.jl")
+include("form/shared.jl")
 
 include("model/pf.jl")
 include("model/opf.jl")
