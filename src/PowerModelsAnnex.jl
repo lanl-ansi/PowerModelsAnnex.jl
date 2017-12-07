@@ -7,6 +7,7 @@ using JuMP
 using PowerModels
 PMs = PowerModels
 
+include("form/acr.jl")
 include("form/wr.jl")
 
 include("model/pf.jl")
