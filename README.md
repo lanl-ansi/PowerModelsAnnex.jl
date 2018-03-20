@@ -7,7 +7,7 @@ Dev:
 
 [PowerModels.jl](https://github.com/lanl-ansi/PowerModels.jl) provides an implementation reference for *established* formulations and methods in power system optimization, and hence is is not an appropriate location for more exploratory work.  PowerModelsAnnex.jl is an extension of PowerModels.jl that provides a home for open-source sharing of preliminary and/or exploratory methods in power system optimization.
 
-Due to the exploritoy nature of PowerModelsAnnex,
+Due to the exploratory nature of PowerModelsAnnex,
 - there is minimal documentation and testing
 - there are limited code quality and reliablity standards
 - anything goes in the annex, more-or-less
