@@ -152,15 +152,10 @@ const line_columns = Dict(
 """
     cost_columns
 
-<<<<<<< HEAD
 :element_id -> ID number of the cost (defaults to -1)
 :coeffs -> coefficients of the cost function (defaults to `:cost`)
 :model -> Piecewise linear (1) or polynomial (2), defaults to polynomial (2)
 :ncost -> Number of coefficients in the polynomial cost or number of pairs (MWh, USD) in piecewise linear costs.
-=======
-:element_id -> ID number of the cost
-:coeffs -> coefficients of the cost function
->>>>>>> Add FrontEnd module
 """
 const cost_columns = Dict(
     :element_id => -1,
