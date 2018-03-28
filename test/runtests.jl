@@ -1,4 +1,5 @@
 using PowerModelsAnnex
+PMA = PowerModelsAnnex
 
 using Logging
 # suppress warnings during testing
@@ -36,4 +37,4 @@ include("pglib/sad.jl")
 include("model/pf.jl")
 include("model/opf.jl")
 
-# include("frontend/frontend.jl")
+include("frontend/frontend.jl")

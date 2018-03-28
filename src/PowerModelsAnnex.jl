@@ -19,6 +19,5 @@ include("pglib/api.jl")
 include("pglib/sad.jl")
 
 include("frontend/frontend.jl")
-using PowerModelsAnnex.FrontEnd
 
 end

@@ -1,7 +1,4 @@
-module FrontEnd
-
 using DataFrames
-using PowerModels
 using Memento
 using Unitful
 include("units.jl")
@@ -1050,5 +1047,3 @@ function max_load_percent!(pmc::Dict, maxload::Real)
         end
     end
 end
-
-end # module end
