@@ -43,6 +43,9 @@ function convert(a::Unitful.Units, x::Period)
     uconvert(a, (sec)u"s")
 end
 
+#@dimension USD "USD" Dollar
+#@refunit 💵 "💵" Dollar USD false
+
 # Methods to drop
 # Exist to test that (offsets)u"hr" should work the same way
 dt2umin(t::AbstractArray{Dates.Minute}) = Dates.value.(t).*u"minute"
