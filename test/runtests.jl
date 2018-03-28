@@ -29,6 +29,8 @@ case_files = [
     joinpath(casepath, "case30.m")
 ]
 
+@testset "PowerModelsAnnex" begin # Just so we get a summary in the end
+
 include("form/wr.jl")
 
 include("pglib/api.jl")
@@ -38,3 +40,5 @@ include("model/pf.jl")
 include("model/opf.jl")
 
 include("frontend/frontend.jl")
+
+end
