@@ -23,6 +23,8 @@ using Base.Test
 ipopt_solver = IpoptSolver(tol=1e-6, print_level=0)
 
 # this will work because PowerModels is a dependency
+pmpath = Pkg.dir("PowerModels") # doing like this so that it does not depend on relative paths
+casepath = joinpath(pmpath, "test", "data")
 case_files = [
     "../../PowerModels/test/data/matpower/case3.m",
     "../../PowerModels/test/data/matpower/case5.m",
