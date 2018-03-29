@@ -16,7 +16,10 @@ export
     add_cost_load!,
     network2pmc,
     build_pmc!,
-    converged
+    converged,
+    PolynomialCost,
+    PWLCost,
+    CostCurve
 
 # These dictionaries store which quantities are relevant to us when building a network model.
 # The keys are the titles of the columns we are going to use, while the values are the corresponding
@@ -149,12 +152,16 @@ const line_columns = Dict(
 """
     cost_columns
 
-:element_id -> ID number of the cost
-:coeffs -> coefficients of the cost function
+:element_id -> ID number of the cost (defaults to -1)
+:coeffs -> coefficients of the cost function (defaults to `:cost`)
+:model -> Piecewise linear (1) or polynomial (2), defaults to polynomial (2)
+:ncost -> Number of coefficients in the polynomial cost or number of pairs (MWh, USD) in piecewise linear costs.
 """
 const cost_columns = Dict(
     :element_id => -1,
     :coeffs => :cost,
+    :model => :model,
+    :ncost => :ncost,
 )
 
 """
@@ -260,7 +267,33 @@ function Network(pmc::Dict)
     gen_df[:cost] = collect(1:size(gen_df)[1]) # Since the only place where costs are stored
     # in the pmc is in pmc["gen"], the order should automatically be preserved.
     allowmissing!(gen_df)
-    cost_gen_df = build_df_from_pmc(cost_columns, pmc["gen"])
+    # When importing data from matpower we need to convert the generator costs to the data
+    # type appropriate for the cost curve
+    aux = deepcopy(pmc["gen"])
+    to_warn = []
+    for k in keys(aux)
+        row = aux[k]["cost"]
+        if aux[k]["model"] == 1
+            if length(row) % 2 != 0
+                error("The type selected (PWL) and the cost data are incompatible")
+            end
+            tmp_ncost = length(row) / 2
+            idx = range(1, tmp_ncost)
+            mws = row[2 * idx - 1] #* u"MW*hr"
+            costs = row[2 * idx] #* u"USD"
+            aux[k]["cost"] = PWLCost(mw=mws, cost=costs)
+            aux[k]["ncost"] = tmp_ncost
+        elseif aux[k]["model"] == 2
+            aux[k]["cost"] = PolynomialCost(row)
+            aux[k]["ncost"] = length(row)
+        else
+            push!(to_warn, k)
+        end
+    end
+    if !isempty(to_warn)
+        warn("Unable to set the costs for keys $to_warn. Please check.")
+    end
+    cost_gen_df = build_df_from_pmc(cost_columns, aux)
     cost_gen_df[:element_id] = collect(1:size(cost_gen_df)[1])
     allowmissing!(cost_gen_df)
     pi_load_df = build_df_from_pmc(pi_load_columns, pmc["bus"])
@@ -275,13 +308,13 @@ function Network(pmc::Dict)
         bus = build_df_from_pmc(bus_columns, pmc["bus"]),
         gen = gen_df,
         pi_load = pi_load_df,
-        ps_load = DataFrame(
+        ps_load = DataFrames.DataFrame(
             [[] for i in 1:length(ps_load_columns)],
             sort(collect(keys(ps_load_columns)))
         ),
         line = build_df_from_pmc(line_columns, pmc["branch"]),
         cost_gen = cost_gen_df,
-        cost_load = DataFrame(
+        cost_load = DataFrames.DataFrame(
             [[] for i in 1:length(cost_columns)],
             sort(collect(keys(cost_columns)))
         ),
@@ -303,32 +336,58 @@ will convert it to a type representing the units "u"MWh"). See Units.jl
 for more information. We are assuming energy units as opposed to power units.
 """
 function applyunits!(net::Network)
-    net.pi_load[:load] = net.pi_load[:load]u"MWh"
-    net.ps_load[:load] = net.ps_load[:load]u"MWh"
-    net.ps_load[:load_max] = net.ps_load[:load_max]u"MWh"
-    net.gen[:gen_p] = net.gen[:gen_p]u"MWh"
-    net.gen[:p_max] = net.gen[:p_max]u"MWh"
-    net.gen[:p_min] = net.gen[:p_min]u"MWh"
-    net.gen[:gen_q] = net.gen[:gen_q]u"MVARh"
-    net.gen[:q_max] = net.gen[:q_max]u"MVARh"
-    net.gen[:q_min] = net.gen[:q_min]u"MVARh"
-    net.gen[:startup_cost] = net.gen[:startup_cost]u"USD"
-    net.gen[:ramp] = net.gen[:ramp]u"USD"
+    net.pi_load[:load] = Array{UnitfulMissing}(net.pi_load[:load]*u"MWh")
+    net.ps_load[:load] = Array{UnitfulMissing}(net.ps_load[:load]*u"MWh")
+    net.ps_load[:load_max] = Array{UnitfulMissing}(net.ps_load[:load_max]*u"MWh")
+    net.gen[:gen_p] = Array{UnitfulMissing}(net.gen[:gen_p]*u"MWh")
+    net.gen[:p_max] = Array{UnitfulMissing}(net.gen[:p_max]*u"MWh")
+    net.gen[:p_min] = Array{UnitfulMissing}(net.gen[:p_min]*u"MWh")
+    net.gen[:gen_q] = Array{UnitfulMissing}(net.gen[:gen_q]*u"MVARh")
+    net.gen[:q_max] = Array{UnitfulMissing}(net.gen[:q_max]*u"MVARh")
+    net.gen[:q_min] = Array{UnitfulMissing}(net.gen[:q_min]*u"MVARh")
+    net.gen[:startup_cost] = Array{UnitfulMissing}(net.gen[:startup_cost]*u"USD")
+    net.gen[:ramp] = Array{UnitfulMissing}(net.gen[:ramp]*u"MWh/minute")
+    net.bus[:base_kv] = Array{UnitfulMissing}(net.bus[:base_kv]*u"kV")
+    #TODO: add cost units
+    net.line[:rate_a] = Array{UnitfulMissing}(net.line[:rate_a]*u"A")
+    net.line[:rate_b] = Array{UnitfulMissing}(net.line[:rate_b]*u"A")
+    net.line[:rate_c] = Array{UnitfulMissing}(net.line[:rate_c]*u"A")
+    net.line[:resistance] = Array{UnitfulMissing}(net.line[:resistance]*u"Ω")
+    net.line[:reactance] = Array{UnitfulMissing}(net.line[:reactance]*u"Ω")
+    net.line[:susceptance] = Array{UnitfulMissing}(net.line[:susceptance]*u"S")
 end
 
 function stripunits!(net::Network)
     # Incomplete method to be extended as we annotate units
     net.pi_load[:load] = Array{Union{Missings.Missing,Float64}}(fustrip(net.pi_load[:load]))
-end
-
-function applyunits!(params::Dict{String, AbstractArray})
-    # Incomplete method to be extended as we annotate units
-    error("Not Implemented Yet")
-end
-
-function stripunits!(params::Dict{String, AbstractArray})
-    # Incomplete method to be extended as we annotate unitss
-    error("Not Implemented Yet")
+    net.ps_load[:load] = Array{Union{Missings.Missing,Float64}}(fustrip(net.ps_load[:load]))
+    net.ps_load[:load_max] = Array{Union{Missings.Missing,Float64}}(
+        fustrip(net.ps_load[:load_max])
+    )
+    net.gen[:gen_p] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:gen_p]))
+    net.gen[:p_max] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:p_max]))
+    net.gen[:p_min] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:p_min]))
+    net.gen[:gen_q] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:gen_q]))
+    net.gen[:q_max] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:q_max]))
+    net.gen[:q_min] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:q_min]))
+    net.gen[:startup_cost] = Array{Union{Missings.Missing,Float64}}(
+        fustrip(net.gen[:startup_cost])
+    )
+    net.gen[:ramp] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:ramp]))
+    net.bus[:base_kv] = Array{Union{Missings.Missing,Float64}}(fustrip(net.bus[:base_kv]))
+    #TODO: strip cost units
+    net.line[:rate_a] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:rate_a]))
+    net.line[:rate_b] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:rate_b]))
+    net.line[:rate_c] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:rate_c]))
+    net.line[:resistance] = Array{Union{Missings.Missing,Float64}}(
+        fustrip(net.line[:resistance])
+    )
+    net.line[:reactance] = Array{Union{Missings.Missing,Float64}}(
+        fustrip(net.line[:reactance])
+    )
+    net.line[:susceptance] = Array{Union{Missings.Missing,Float64}}(
+        fustrip(net.line[:susceptance])
+    )
 end
 
 function matpower2pmc(path::AbstractString)
@@ -339,18 +398,6 @@ end
 
 function Network(casepath::AbstractString)
     return Network(matpower2pmc(casepath))
-end
-
-"""
-    list_cases()
-
-List all cases available in the case library.
-"""
-function list_cases()
-    cases = readdir(CASE_LIB_PATH)
-    cases = replace.(cases, ".m", "")
-    cases = Symbol.(cases)
-    return cases
 end
 
 """
@@ -629,23 +676,169 @@ function add_line!(
     ])
 end
 
+# We want to deal with piecewise linear costs and polynomial costs using multiple dispatch.
+# For polynomial costs, the format of the cost curve consists of the sequence of coefficients
+# of the polynomial, from the highest degree to the lowest degree
+"""
+
+    abstract type CostCurve end
+
+Abstract type for cost curves. We have two types, one being PolynomialCost, the other PWLCost.
+These types are introduced in order to deal with the possible formats in which cost curves can
+be specified and to enforce type (and unit) consistency.
+"""
+abstract type CostCurve end
+
+"""
+
+PolynomialCost{T<:Number} <: CostCurve
+
+# Field
+
+- `coefficients::AbstractVector{T}`
+
+The `coefficients` field is a vector that contains the numerical values of the coefficients of
+the monomials of the polynomial cost function. If `n=length(coefficients)`, the cost is a
+polynomial of degree n - 1. The first element of the array is the coefficient of the monomial
+of degree n - 1, the last is the coefficient of the monomial of degree 0.
+
+# NOTE:
+
+Dimensions are not enforced as the coefficients have all different dimension (the element i
+of a vector of length n has dimensions USD/(MWhr)^(n-i))
+"""
+struct PolynomialCost{T<:Number} <: CostCurve
+    coefficients::AbstractVector{T}
+end
+coefficients(cost::PolynomialCost) = cost.coefficients
+degree(cost::PolynomialCost) = length(cost.coefficients) - 1
+n_cost(pol_cost::PolynomialCost) = length(pol_cost.coefficients)
+
+
+"""
+
+    is_convex(mw::AbstractVector{<:Number}, cost::AbstractVector{<:Number})
+
+Determines if the data used for a PWL curve are defining a convex curve.
+
+"""
+function is_convex(mw::AbstractVector{<:Number}, cost::AbstractVector{<:Number})
+    x = ustrip.(mw)
+    y = ustrip.(cost)
+    dx = x[2:end] - x[1:end-1]
+    dy = y[2:end] - y[1:end-1]
+    slopes = dy ./ dx
+    convex = true
+    if length(slopes) >= 2
+        convex = prod((slopes[2:end] - slopes[1:end-1]) .>= 0)
+    end
+    return convex
+end
+
+"""
+
+    PWLCost <: CostCurve
+
+The cost function as a piecewise linear function of the MWhr.
+
+# Fields
+
+- `cost::AbstractVector`: the vector of the value of the cost function at the extrema
+of the segments
+- `mw::AbstractVector`: the vector of the extrema of the segments in which
+the range for power generation is split.
+
+# Constructor
+For convenience, and to avoid errors due to the order, the default constructor uses kwargs:
+```
+    PWLCost(mw=mw, cost=cost)
+```
+
+# NOTE:
+Units are explicitly given.
+
+# TODO:
+Make the dimensions and units parameters of the type.
+"""
+struct PWLCost <: CostCurve
+    mw::AbstractVector{<:Units.PowerHour}
+    cost::AbstractVector{<:Units.Currency}
+# Inner constructor contains some built-in checks
+    function PWLCost(;
+        mw::AbstractVector{<:Units.PowerHour}=Units.PowerHour[],
+        cost::AbstractVector{<:Units.Currency}=Units.Currency[],
+    )
+        if length(mw) != length(cost)
+            error("Malformed cost curve. Please check.")
+        else
+            if (eltype(mw) == asqtype(u"MW*hr")) && (eltype(cost) <: Units.Currency)
+                if is_convex(mw, cost)
+                    return new(mw, cost)
+                else
+                    error("Cost curve is not convex. Please check.")
+                end
+            else
+                error("Bad units in cost curve. Please check.")
+            end
+        end
+    end
+end
+costs(pwl_cost::PWLCost) = pwl_cost.cost
+mws(pwl_cost::PWLCost) = pwl_cost.mw
+n_segments(pwl_cost::PWLCost) = length(pwl_cost.cost) - 1
+n_cost(pwl_cost::PWLCost) = length(pwl_cost.cost)
+
+"""
+    prices(pwl_cost::PWLCost)
+
+This function returns the price for each block of the PWL curve, defined as
+the slopes of the linear function for each block.
+"""
+function prices(pwl_cost::PWLCost)
+    out = []
+    mw = mws(pwl_cost)
+    usd = costs(pwl_cost)
+    for i in 1:n_segments(pwl_cost)
+        push!(out, (usd[i+1] - usd[i])/(mw[i+1] - mw[i]))
+    end
+    return out
+end
+
+"""
+    costcurve2pmc(c)
+
+Convert the CostCurve types into PowerModels costs
+"""
+costcurve2pmc(c::CostCurve) = Float64[]
+function costcurve2pmc(c::PWLCost)
+    mw = ustrip(mws(c))
+    cost = ustrip(costs(c))
+    tmp = hcat(mw, cost)'
+    return vec(tmp)
+end
+costcurve2pmc(c::PolynomialCost) = coefficients(c)
+
 """
     add_cost_gen!(
         net::Network;
         coeffs::Vector{<:Real}=Vector{Float64}(),
         gen_id::Union{Missings.Missing,Int}= missing,
-        element_id::Int= -1
+        element_id::Int= -1,
+        model::Int=2,
+        ncost::Int=0,
     )
 
 Add new generator cost to a Network `net`. If `element_id` is not specified, a reasonable
-value will be adopted.
+value will be adopted. This method applies to polynomial costs.
 """
 function add_cost_gen!(
     net::Network;
-    coeffs::Vector{<:Real}=Vector{Float64}(),
+    coeffs::PolynomialCost=PolynomialCost(Float64[]),
     gen_id::Union{Missings.Missing,Int}= missing,
-    element_id::Int= -1
+    element_id::Int= -1,
 )
+    model = 2
+    ncost = n_cost(coeffs)
     ids = net.cost_gen[:element_id]
     if element_id == -1 || element_id in ids
         control = false
@@ -659,11 +852,11 @@ function add_cost_gen!(
         end
     end
     if ismissing(gen_id)
-        push!(net.cost_gen, Any[coeffs, element_id])
+        push!(net.cost_gen, Any[coeffs, element_id, model, ncost])
     else
         gen_ids = net.gen[:element_id]
         if gen_id in gen_ids
-            push!(net.cost_gen, Any[coeffs, element_id])
+            push!(net.cost_gen, Any[coeffs, element_id, model, ncost])
             net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
         else
             warn("A generator with id $gen_id does not exist. Cost will not be created.")
@@ -677,17 +870,21 @@ end
         coeffs::Vector{<:Real}=Vector{Float64}(),
         load_id::Union{Missings.Missing,Int}= missing,
         element_id::Int= -1,
+        model::Int=2,
+        ncost::Int=0,
     )
 
 Add new load cost to a Network `net`. If `element_id` is not specified, a reasonable
-value will be adopted.
+value will be adopted. This method applies to polynomial costs.
 """
 function add_cost_load!(
     net::Network;
-    coeffs::Vector{<:Real}=Vector{Float64}(),
+    coeffs::PolynomialCost=PolynomialCost(Float64[]),
     load_id::Union{Missings.Missing,Int}= missing,
     element_id::Int= -1,
 )
+    model = 2
+    ncost = n_cost(coeffs)
     ids = net.cost_load[:element_id]
     if element_id == -1 || element_id in ids
         control = false
@@ -701,11 +898,107 @@ function add_cost_load!(
         end
     end
     if ismissing(load_id)
-        push!(net.cost_load, Any[coeffs, element_id])
+        push!(net.cost_load, Any[coeffs, element_id, model, ncost])
     else
         load_ids = net.gen[:element_id]
         if load_id in load_ids
-            push!(net.cost_load, Any[coeffs, element_id])
+            push!(net.cost_load, Any[coeffs, element_id, model, ncost])
+            net.ps_load[
+                Array{Bool}(net.ps_load[:element_id] .== load_id),
+                :cost
+            ] = element_id
+        else
+            warn("A PS load with id $load_id does not exist. Cost will not be created.")
+        end
+    end
+end
+
+
+"""
+    add_cost_gen!(
+        net::Network;
+        pwl_cost::PWLCost;
+        gen_id::Union{NAtype,Int}= NA,
+        element_id::Int= -1
+        model::Int=1,
+        ncost::Int=0,
+    )
+
+Add new generator cost to a Network `net`. If `element_id` is not specified, a reasonable
+value will be adopted. This method applies to piecewise linear costs (1).
+"""
+function add_cost_gen!(
+    net::Network,
+    pwl_cost::PWLCost;
+    gen_id::Union{Missings.Missing,Int}=missing,
+    element_id::Int= -1,
+)
+    model = 1
+    ncost = length(mws(pwl_cost))
+    ids = net.cost_gen[:element_id]
+    if element_id == -1 || element_id in ids
+        control = false
+        if element_id in ids && element_id != -1
+            w = "Desired bus id, $element_id, is already in use. "
+            control = true
+        end
+        element_id = isempty(ids) ? 1 : maximum(ids) + 1
+        if control
+            warn(w * "Using id = $element_id instead.")
+        end
+    end
+    if ismissing(gen_id)
+        push!(net.cost_gen, Any[pwl_cost, element_id, model, ncost])
+    else
+        gen_ids = net.gen[:element_id]
+        if gen_id in gen_ids
+            push!(net.cost_gen, Any[pwl_cost, element_id, model, ncost])
+            net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
+        else
+            warn("A generator with id $gen_id does not exist. Cost will not be created.")
+        end
+    end
+end
+
+"""
+    add_cost_load!(
+        net::Network;
+        coeffs::Tuple{Vector}=([], []),
+        load_id::Union{NAtype,Int}= NA,
+        element_id::Int= -1,
+        model::Int=1,
+        ncost::Int=0,
+    )
+
+Add new load cost to a Network `net`. If `element_id` is not specified, a reasonable
+value will be adopted. This method applies to piecewise linear costs (1).
+"""
+function add_cost_load!(
+    net::Network,
+    pwl_cost::PWLCost;
+    load_id::Union{Missings.Missing, Int}=missing,
+    element_id::Int=-1,
+)
+    model = 1
+    ncost = length(mws(pwl_cost))
+    ids = net.cost_load[:element_id]
+    if element_id == -1 || element_id in ids
+        control = false
+        if element_id in ids && element_id != -1
+            w = "Desired bus id, $element_id, is already in use. "
+            control = true
+        end
+        element_id = isempty(ids) ? 1 : maximum(ids) + 1
+        if control
+            warn(w * "Using id = $element_id instead.")
+        end
+    end
+    if ismissing(load_id)
+        push!(net.cost_load, Any[pwl_cost, element_id, model, ncost])
+    else
+        load_ids = net.gen[:element_id]
+        if load_id in load_ids
+            push!(net.cost_load, Any[pwl_cost, element_id, model, ncost])
             net.ps_load[
                 Array{Bool}(net.ps_load[:element_id] .== load_id),
                 :cost
@@ -740,6 +1033,7 @@ function network2pmc(
     )
     stripunits!(net)
     gen_dict = Dict()
+    to_warn = Int[]
     for r in eachrow(gen(net))
         old = Dict()
         if string(r[:element_id]) in keys(pmc(net)["gen"])
@@ -747,7 +1041,7 @@ function network2pmc(
         end
         there = !isempty(old)
         coeffs = there ? old["cost"] : [0.0]
-        coeffs = !ismissing(r[:cost]) ? cost_gen(net)[:coeffs][r[:cost]] : coeffs
+        coeffs = !ismissing(r[:cost]) ? costcurve2pmc(cost_gen(net)[:coeffs][r[:cost]]) : coeffs
         gen_dict[string(r[:element_id])] = Dict(
             "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["index"],
             "gen_bus" => (!there || !ismissing(r[:bus])) ? r[:bus] :old["gen_bus"],
@@ -757,12 +1051,13 @@ function network2pmc(
             "qg" => (!there || !ismissing(r[:gen_q])) ? r[:gen_q] : old["qg"],
             "qmax" => (!there || !ismissing(r[:q_max])) ? r[:q_max] : old["qmax"],
             "qmin" => (!there || !ismissing(r[:q_min])) ? r[:q_min] : old["qmin"],
-            "cost" => coeffs,
             "startup" => (!there || !ismissing(r[:startup_cost])) ? r[:startup_cost] : old["startup"],
             "gen_status" => (!there || !ismissing(r[:status])) ? r[:status] : old["gen_status"],
             "ramp_10" => (!there || !ismissing(r[:ramp])) ? r[:ramp] : old["ramp_10"],
+            "cost" => (!there || !ismissing(r[:cost]) ) ? coeffs : old["cost"], # Default or old value
+            "model" => !there  ? -1 : old["model"], # Default or old value
+            "ncost" => !there  ? 0 : old["ncost"], # Default or old value
             "qc1max" => 0.0,
-            "model" => 2,
             "qc2max" => 0.0,
             "mbase" => baseMVA,
             "pc2" => 0.0,
@@ -775,11 +1070,28 @@ function network2pmc(
             "vg" => 1.01,
             "qc1min" => 0.0,
             "qc2min" => 0.0,
-            "ncost" => length(coeffs),
         )
+        if !there && isa(coeffs, PolynomialCost)
+            gen_dict["cost"] = coefficients(coeffs)
+            gen_dict["model"] = 2
+            gen_dict["ncost"] = n_cost(coeffs)
+        elseif !there && isa(coeffs, PWLCost)
+            mw_pts = ustrip.(mws(coeffs))
+            cost_pts = ustrip.(costs(coeffs))
+            mix = vec(hcat(mw_pts, cost_pts)') # This is the format used by MATPOWER and PowerModels
+            gen_dict["cost"] = mix
+            gen_dict["model"] = 1
+            gen_dict["ncost"] = length(mw_pts)
+        else
+            push!(to_warn, r[:element_id])
+        end
+    end
+    if !isempty(to_warn)
+        warn("Using default costs for generator cost ids $to_warn")
     end
     # Here we also need to add the price sensitive loads as generators
     last_gen = maximum(gen(net)[:element_id])
+    to_warn = Int[]
     for r in eachrow(ps_load(net))
         old = Dict()
         if string(r[:element_id]) in keys(pmc(net)["gen"])
@@ -787,12 +1099,14 @@ function network2pmc(
         end
         there = !isempty(old)
         coeffs = there ? old["cost"] : [0.0]
-        coeffs = !ismissing(r[:cost]) ? cost_gen(net)[:coeffs][r[:cost]] : coeffs
+        coeffs = !ismissing(r[:cost]) ? cost_load(net)[:coeffs][r[:cost]] : coeffs
         gen_dict[string(r[:element_id] + last_gen)] = Dict(
             "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] + last_gen : old["index"],
             "gen_bus" => (!there || !ismissing(r[:bus])) ? r[:bus] : old["gen_bus"],
             "pmax" => (!there || !ismissing(r[:load_max])) ? r[:load_max] : old["pmax"],
-            "cost" => coeffs,
+            "cost" => (!there || !ismissing(r[:cost]) ) ? costcurve2pmc(cost_load(net)[:coeffs][r[:cost]]) : old["cost"], # Default or old value
+            "model" => !there  ? -1 : old["model"], # Default or old value
+            "ncost" => !there  ? 0 : old["ncost"], # Default or old value
             "gen_status" => (!there || !ismissing(r[:status])) ? r[:status] : old["gen_status"],
             "ramp_10" => 0.0,
             "startup" => 0.0,
@@ -814,8 +1128,32 @@ function network2pmc(
             "vg" => 1.01,
             "qc1min" => 0.0,
             "qc2min" => 0.0,
-            "ncost" => 1,
         )
+        # TODO: Check the signs of ps load costs
+        if !there && isa(coeffs, PolynomialCost)
+            # Load is negative generation. By serving load, the total cost receives a negative contribution
+            # due to the amount payed by the utility.
+            gen_dict["cost"] = -coefficients(coeffs) # The cost curve has to be flipped along the x axis.
+            aux = gen_dict["pmin"]
+            gen_dict["pmin"] = -gen_dict["pmax"] # The cost curve has to be flipped along the y axis.
+            gen_dict["pmax"] = -aux
+            gen_dict["model"] = 2
+            gen_dict["ncost"] = n_cost(coeffs)
+        elseif !there && isa(coeffs, PWLCost)
+            mw_pts = -ustrip.(mws(coeffs)) # The mws have to be flipped.
+            cost_pts = -ustrip.(costs(coeffs)) # The cost has to be flipped too. It's a cost for the utility, profit for generators.
+            mix = vec(hcat(mw_pts, cost_pts)') # This is the format used by MATPOWER and PowerModels
+            gen_dict["cost"] = mix
+            gen_dict["model"] = 1
+            gen_dict["ncost"] = length(mw_pts)
+            gen_dict["pmin"] = -gen_dict["pmax"] # The cost curve has to be flipped along the y axis. Load is negative generation
+            gen_dict["pmax"] = 0.0
+        else
+            push!(to_warn, r[:element_id])
+        end
+    end
+    if !isempty(to_warn)
+        warn("Used default costs for ps load cost ids $to_warn.")
     end
     outnet["gen"] = gen_dict
     branch_dict = Dict()
@@ -889,6 +1227,8 @@ function build_pmc!(net::Network)
     for k in keys(updated)
         net.pmc[k] = updated[k]
     end
+    #PowerModels.check_network_data(updated) # Small problem, it's the cause of
+    # extreme verbosity.
 end
 
 ### Getters ###
@@ -932,7 +1272,10 @@ run_opf(net::Network, model::DataType) = run_opf(pmc(net), model)
 """
     lmps(net::Network)
 
-Return a DataFrame with the LMPs for all buses after an OPF run.
+Return a DataFrame with the LMPs for all buses after an OPF run. The prices are extracted
+from the Lagrange multipliers for the Kirchhoff's conservation law. Due to conventions
+in PowerModels.jl, the LMP are the negative of these Lagrange multipliers.
+
 """
 function lmps(net::Network)
     isempty(results(net)) && return DataFrame()
@@ -940,14 +1283,15 @@ function lmps(net::Network)
     buses = Int64[] # Here assuming buses are just numbered. If we are to use general names
     # we should go to either strings or symbols
     for k in keys(results(net)["solution"]["bus"])
-        push!(lmps, results(net)["solution"]["bus"][k]["lam_kcl_r"])
+        push!(lmps, -results(net)["solution"]["bus"][k]["lam_kcl_r"]) # the relation between Lagrange
+        # multipliers and LMPs requires a -1, here.
         push!(buses, parse(Int64, k))
     end
     # Let's sort it so it looks decent
     p = sortperm(buses)
     buses = buses[p]
     lmps = lmps[p]
-    return DataFrame([buses, lmps], [:bus, :lmp])
+    return DataFrame(:bus => buses, :lmp => lmps)
 end
 
 """
