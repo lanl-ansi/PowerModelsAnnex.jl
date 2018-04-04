@@ -36,9 +36,11 @@ export
 :voltage -> bus operating voltage
 :volt_max -> maximum bus voltage
 :volt_min -> minimum bus voltage
-:bus_type -> What are the types? #TODO
-:base_kv -> What is this? #TODO
-:coords -> bus geocoordinates in latitude and longitude
+:bus_type -> Bus type
+:base_kv -> Base voltage
+:coords -> Bus geocoordinates in latitude and longitude
+:zone -> Bus zone
+:area -> Bus Area
 """
 const bus_columns = Dict(
     :element_id => :index,
@@ -49,6 +51,8 @@ const bus_columns = Dict(
     :bus_type => :bus_type,
     :base_kv => :base_kv,
     :coords => missing, # The cases don't come with location data.
+    :zone => :zone,
+    :area => :area,
 )
 
 """
@@ -87,14 +91,16 @@ const gen_columns = Dict(
 
 :element_id -> ID number of the load
 :bus -> ID number of the bus where the load is placed
-:load -> active load value
+:load_p -> active load value
+:load_q -> reactive load value
 :status -> 0=IDLE, 1=ACTIVE
 """
 const pi_load_columns = Dict(
-    :element_id => -1, # PowerModel cases blend loads into buses, so they have no unique index.
-    :bus => :index,
-    :load => :pd,
-    :status => 1,
+    :element_id => :index,
+    :bus => :load_bus,
+    :load_p => :pd,
+    :load_q => :qd,
+    :status => :status,
 )
 
 """
@@ -132,6 +138,10 @@ const ps_load_columns = Dict( # This is meant for our use, not for importing pow
 :susceptance -> line susceptance
 :ang_min -> minimum voltage angle difference
 :ang_max -> maximum voltage angle difference
+:q_to -> Reactive power reaching `to_bus`
+:q_from -> Reactive power leaving `from_bus`
+:p_to -> Real power reaching `to_bus`
+:p_from -> Real power leaving `from_bus`
 """
 const line_columns = Dict(
     :element_id => :index,
@@ -147,6 +157,10 @@ const line_columns = Dict(
     :susceptance => :br_b,
     :ang_min => :angmin,
     :ang_max => :angmax,
+    :q_to => :q_to,
+    :q_from => :q_fr,
+    :p_to => :p_to,
+    :p_from => :p_from,
 )
 
 """
@@ -296,12 +310,7 @@ function Network(pmc::Dict)
     cost_gen_df = build_df_from_pmc(cost_columns, aux)
     cost_gen_df[:element_id] = collect(1:size(cost_gen_df)[1])
     allowmissing!(cost_gen_df)
-    pi_load_df = build_df_from_pmc(pi_load_columns, pmc["bus"])
-    # Some buses might not have load, so we must remove them from the load data frame.
-    rows2delete = [i for i in 1:size(pi_load_df)[1] if (pi_load_df[:load][i] == 0)]
-    deleterows!(pi_load_df, rows2delete)
-    pi_load_df[:element_id] = collect(1:size(pi_load_df)[1])
-    pi_load_df[:status] = fill(1, size(pi_load_df)[1])
+    pi_load_df = build_df_from_pmc(pi_load_columns, pmc["load"])
     allowmissing!(pi_load_df)
 
     return Network(
@@ -336,7 +345,8 @@ will convert it to a type representing the units "u"MWh"). See Units.jl
 for more information. We are assuming energy units as opposed to power units.
 """
 function applyunits!(net::Network)
-    net.pi_load[:load] = Array{UnitfulMissing}(net.pi_load[:load]*u"MWh")
+    net.pi_load[:load_p] = Array{UnitfulMissing}(net.pi_load[:load_p]*u"MWh")
+    net.pi_load[:load_q] = Array{UnitfulMissing}(net.pi_load[:load_q]*u"MVARh")
     net.ps_load[:load] = Array{UnitfulMissing}(net.ps_load[:load]*u"MWh")
     net.ps_load[:load_max] = Array{UnitfulMissing}(net.ps_load[:load_max]*u"MWh")
     net.gen[:gen_p] = Array{UnitfulMissing}(net.gen[:gen_p]*u"MWh")
@@ -349,6 +359,10 @@ function applyunits!(net::Network)
     net.gen[:ramp] = Array{UnitfulMissing}(net.gen[:ramp]*u"MWh/minute")
     net.bus[:base_kv] = Array{UnitfulMissing}(net.bus[:base_kv]*u"kV")
     #TODO: add cost units
+    net.line[:p_to] = Array{UnitfulMissing}(net.line[:p_to]*u"MWh")
+    net.line[:p_from] = Array{UnitfulMissing}(net.line[:rate_a]*u"MWh")
+    net.line[:q_to] = Array{UnitfulMissing}(net.line[:rate_a]*u"MVARh")
+    net.line[:q_from] = Array{UnitfulMissing}(net.line[:rate_a]*u"MVARh")
     net.line[:rate_a] = Array{UnitfulMissing}(net.line[:rate_a]*u"A")
     net.line[:rate_b] = Array{UnitfulMissing}(net.line[:rate_b]*u"A")
     net.line[:rate_c] = Array{UnitfulMissing}(net.line[:rate_c]*u"A")
@@ -359,7 +373,12 @@ end
 
 function stripunits!(net::Network)
     # Incomplete method to be extended as we annotate units
-    net.pi_load[:load] = Array{Union{Missings.Missing,Float64}}(fustrip(net.pi_load[:load]))
+    net.pi_load[:load_p] = Array{Union{Missings.Missing,Float64}}(
+        fustrip(net.pi_load[:load_p])
+    )
+    net.pi_load[:load_q] = Array{Union{Missings.Missing,Float64}}(
+        fustrip(net.pi_load[:load_q])
+    )
     net.ps_load[:load] = Array{Union{Missings.Missing,Float64}}(fustrip(net.ps_load[:load]))
     net.ps_load[:load_max] = Array{Union{Missings.Missing,Float64}}(
         fustrip(net.ps_load[:load_max])
@@ -376,6 +395,10 @@ function stripunits!(net::Network)
     net.gen[:ramp] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:ramp]))
     net.bus[:base_kv] = Array{Union{Missings.Missing,Float64}}(fustrip(net.bus[:base_kv]))
     #TODO: strip cost units
+    net.line[:p_to] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:p_to]))
+    net.line[:p_fr] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:p_from]))
+    net.line[:q_to] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:q_to]))
+    net.line[:q_from] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:q_from]))
     net.line[:rate_a] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:rate_a]))
     net.line[:rate_b] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:rate_b]))
     net.line[:rate_c] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:rate_c]))
@@ -425,6 +448,8 @@ function add_bus!(
     volt_max::Union{Missings.Missing,<:Number}=missing,
     volt_min::Union{Missings.Missing,<:Number}=missing,
     coords::Union{Missings.Missing,Tuple{Float64,Float64}}=missing,
+    area::Union{Missings.Missing,Int}=missing,
+    zone::Union{Missings.Missing,Int}=missing,
 )
     ids = net.bus[:element_id]
     if element_id == -1 || element_id in ids
@@ -441,7 +466,18 @@ function add_bus!(
     name == "none" ? name = "bus_" * string(element_id) : nothing
     push!(
         net.bus,
-        Any[base_kv, bus_type, coords, element_id, name, volt_max, volt_min, voltage]
+        Any[
+            area,
+            base_kv,
+            bus_type,
+            coords,
+            element_id,
+            name,
+            volt_max,
+            volt_min,
+            voltage,
+            zone
+        ]
     )
 end
 
@@ -514,7 +550,8 @@ end
         net::Network;
         element_id::Int=-1,
         bus::Union{Missings.Missing,Int}=missing,
-        load::Union{Missings.Missing,<:Number}=missing,
+        load_p::Union{Missings.Missing,<:Number}=missing,
+        load_q::Union{Missings.Missing,<:Number}=missing,
         status::Int=1,
     )
 
@@ -526,7 +563,8 @@ function add_pi_load!(
     net::Network;
     element_id::Int=-1,
     bus::Union{Missings.Missing,Int}=missing,
-    load::Union{Missings.Missing,<:Number}=missing,
+    load_p::Union{Missings.Missing,<:Number}=missing,
+    load_q::Union{Missings.Missing,<:Number}=missing,
     status::Int=1,
 )
     ids = net.pi_load[:element_id]
@@ -541,7 +579,7 @@ function add_pi_load!(
             warn(w * "Using id = $element_id instead.")
         end
     end
-    push!(net.pi_load, Any[bus, element_id, load, status])
+    push!(net.pi_load, Any[bus, element_id, load_p, load_q, status])
 end
 
 """
@@ -549,7 +587,8 @@ end
         net::Network;
         element_id::Int=-1,
         bus::Union{Missings.Missing,Int}=missing,
-        load::Union{Missings.Missing,<:Number}=missing,
+        load_p::Union{Missings.Missing,<:Number}=missing,
+        load_q::Union{Missings.Missing,<:Number}=missing,
         status::Int=1,
     )
 
@@ -561,10 +600,18 @@ function add_load!(
     net::Network;
     element_id::Int=-1,
     bus::Union{Missings.Missing,Int}=missing,
-    load::Union{Missings.Missing,<:Number}=missing,
+    load_p::Union{Missings.Missing,<:Number}=missing,
+    load_q::Union{Missings.Missing,<:Number}=missing,
     status::Int=1,
 )
-    add_pi_load!(net, element_id = element_id, bus = bus, load = load, status = status)
+    add_pi_load!(
+        net,
+        element_id=element_id,
+        bus=bus,
+        load_p=load_p,
+        load_q=load_q,
+        status=status
+    )
 end
 
 
@@ -623,6 +670,10 @@ end
         susceptance::Union{Missings.Missing,<:Number}= missing,
         ang_min::Float64=-1.0,
         ang_max::Float64=1.0,
+        p_to::Float64=0.0,
+        p_from::Float64=0.0,
+        q_to::Float64=0.0,
+        q_from::Float64=0.0,
     )
 
 Add a new line to a Network `net`. In case `element_id`, `transformer` and `status` are
@@ -645,6 +696,10 @@ function add_line!(
     susceptance::Union{Missings.Missing,<:Number}= missing,
     ang_min::Float64=-1.0,
     ang_max::Float64=1.0,
+    p_to::Float64=0.0,
+    p_from::Float64=0.0,
+    q_to::Float64=0.0,
+    q_from::Float64=0.0,
 )
     ids = net.line[:element_id]
     if element_id == -1 || element_id in ids
@@ -663,6 +718,10 @@ function add_line!(
         ang_min,
         from_bus,
         element_id,
+        p_from,
+        p_to,
+        q_from,
+        q_to,
         rate_a,
         rate_b,
         rate_c,
@@ -1175,7 +1234,11 @@ function network2pmc(
             "br_x" => (!there || !ismissing(r[:element_id])) ? r[:reactance] : old["br_x"],
             "br_b" => (!there || !ismissing(r[:element_id])) ? r[:susceptance] : old["br_b"],
             "angmin" => (!there || !ismissing(r[:element_id])) ? r[:ang_min] : old["angmin"],
-            "angmax" => (!there || !ismissing(r[:element_id])) ? r[:ang_max] : old["angmax"],
+            "angmax" => (!there || !ismissing(r[:element_id])) ? r[:ang_max] : old["andmax"],
+            "b_to" => (!there || !ismissing(r[:element_id])) ? r[:p_to] : old["b_to"],
+            "b_fr" => (!there || !ismissing(r[:element_id])) ? r[:p_from] : old["b_fr"],
+            "g_to" => (!there || !ismissing(r[:element_id])) ? r[:q_to] : old["g_to"],
+            "g_fr" => (!there || !ismissing(r[:element_id])) ? r[:q_from] : old["g_fr"],
             "shift" => 0.0,
             "tap" => 1.0,
         )
@@ -1196,22 +1259,29 @@ function network2pmc(
             "vmin" => (!there || !ismissing(r[:element_id])) ? r[:volt_min] : old["vmin"],
             "bus_type" => (!there || !ismissing(r[:element_id])) ? r[:bus_type] : old["bus_type"],
             "base_kv" => (!there || !ismissing(r[:element_id])) ? r[:base_kv] : old["base_kv"],
-            "zone" => 1,
+            "zone" => (!there || !ismissing(r[:element_id])) ? r[:zone] : old["zone"],
             "bus_i" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["bus_i"],
-            "qd" => 0.0,
-            "gs" => 0.0,
-            "bs" => 0.0,
-            "area" => 1,
+            "area" => (!there || !ismissing(r[:element_id])) ? r[:area] : old["area"],
             "va" => 0.0,
-            "pd" => 0.0,
         )
     end
-    for r in eachrow(pi_load(net))
-        if !ismissing(r[:status]) && !ismissing(r[:bus])
-            bus_dict[string(r[:bus])]["pd"] += r[:load]
-        end
-    end
     outnet["bus"] = bus_dict
+    load_dict = Dict()
+    for r in eachrow(pi_load(net))
+        old = Dict()
+        if string(r[:element_id]) in keys(pmc(net)["load"])
+            old = pmc(net)["load"][string(r[:element_id])]
+        end
+        there = !isempty(old)
+        load_dict[string(r[:element_id])] = Dict(
+            "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["index"],
+            "load_bus" => (!there || !ismissing(r[:element_id])) ? r[:bus] : old["load_bus"],
+            "qd" => (!there || !ismissing(r[:element_id])) ? r[:load_q] : old["qd"],
+            "pq" => (!there || !ismissing(r[:element_id])) ? r[:load_p] : old["pd"],
+            "status" => (!there || !ismissing(r[:element_id])) ? r[:status] : old["status"],
+        )
+    end
+    outnet["load"] = load_dict
     return outnet
 end
 
