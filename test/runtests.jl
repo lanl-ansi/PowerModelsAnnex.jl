@@ -19,16 +19,14 @@ using Base.Test
 ipopt_solver = IpoptSolver(tol=1e-6, print_level=0)
 
 # this will work because PowerModels is a dependency
-pmpath = Pkg.dir("PowerModels") # doing like this so that it does not depend on relative paths
-casepath = joinpath(pmpath, "test", "data")
 case_files = [
-    joinpath(casepath, "case3.m"),
-    joinpath(casepath, "case5.m"),
-    joinpath(casepath, "case5_asym.m"),
-    joinpath(casepath, "case5_dc.m"),
-    joinpath(casepath, "case14.m"),
-    joinpath(casepath, "case24.m"),
-    joinpath(casepath, "case30.m")
+    "../../PowerModels/test/data/case3.m",
+    "../../PowerModels/test/data/case5.m",
+    "../../PowerModels/test/data/case5_asym.m",
+    "../../PowerModels/test/data/case5_dc.m",
+    "../../PowerModels/test/data/case14.m",
+    "../../PowerModels/test/data/case24.m",
+    "../../PowerModels/test/data/case30.m"
 ]
 
 @testset "PowerModelsAnnex" begin # Just so we get a summary in the end
