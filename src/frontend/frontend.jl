@@ -1391,3 +1391,15 @@ function max_load_percent!(pmc::Dict, maxload::Real)
         end
     end
 end
+
+"""
+    infeasible(net::Network)
+
+Check if the total demand can be satisfied by the generators. Returns `true` in case no
+solution is possible.
+"""
+function infeasible(net::Network)
+    tot_load = sum(pi_load(net)[:load])
+    max_gen = sum(gen(net)[:p_max])
+    return tot_load > max_gen
+end 
