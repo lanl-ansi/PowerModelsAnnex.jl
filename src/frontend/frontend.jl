@@ -1176,7 +1176,7 @@ function network2pmc(
             "br_x" => (!there || !ismissing(r[:element_id])) ? r[:reactance] : old["br_x"],
             "br_b" => (!there || !ismissing(r[:element_id])) ? r[:susceptance] : old["br_b"],
             "angmin" => (!there || !ismissing(r[:element_id])) ? r[:ang_min] : old["angmin"],
-            "angmax" => (!there || !ismissing(r[:element_id])) ? r[:ang_max] : old["andmax"],
+            "angmax" => (!there || !ismissing(r[:element_id])) ? r[:ang_max] : old["angmax"],
             "shift" => 0.0,
             "tap" => 1.0,
         )
@@ -1402,4 +1402,4 @@ function infeasible(net::Network)
     tot_load = sum(pi_load(net)[:load])
     max_gen = sum(gen(net)[:p_max])
     return tot_load > max_gen
-end 
+end

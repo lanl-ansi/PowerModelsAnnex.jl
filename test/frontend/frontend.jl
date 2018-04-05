@@ -89,6 +89,7 @@ end
     end
 
     net = Network(case_files[5])
+    @test !PMA.infeasible(net)
     @test size(PMA.bus(net))[1] == 14
     add_bus!(net)
     add_gen!(net)
@@ -108,18 +109,16 @@ end
     old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
     PMA.max_load_percent!(PMA.pmc(net), 50)
     @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
+    pm = PMA.network2pmc(net)
+    @test isa(pm, Dict)
+    @test "branch" in keys(pm)
     PMA.applyunits!(net)
     @test isa(net.pi_load[:load], Array{Union{<:Unitful.Quantity, Missings.Missing}})
     PMA.stripunits!(net)
     @test isa(net.pi_load[:load], Array{Union{Missings.Missing,Float64}})
-    try
-        applyunits!(Dict{String, AbstractArray}())
-    catch e
-        @test isa(e, UndefVarError)
-    end
-    try
-        stripunits!(Dict{String, AbstractArray}())
-    catch e
-        @test isa(e, UndefVarError)
-    end
+    @test_throws UndefVarError applyunits!(Dict{String, AbstractArray}())
+    @test_throws UndefVarError stripunits!(Dict{String, AbstractArray}())
+    net = Network()
+    @test isempty(PMA.pmc(net))
+    @test isempty(PMA.pi_load(net))
 end
