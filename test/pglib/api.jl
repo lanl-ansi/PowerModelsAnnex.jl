@@ -22,4 +22,3 @@
         @test isapprox(result["solution"]["bus"]["2"]["pd"], 0.361; atol = 1e-2)
     end
 end
-
