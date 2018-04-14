@@ -35,7 +35,7 @@ end
 
 @testset "PowerModels Network" begin
     @testset "Piecewise linear costs" begin
-        net = Network("../../PowerModels/test/data/case14.m")
+        net = Network("../../PowerModels/test/data/matpower/case14.m")
         @test size(PMA.bus(net))[1] == 14
         add_bus!(net)
         add_gen!(net)
@@ -63,7 +63,7 @@ end
 
 
     @testset "Polynomial costs" begin
-        net = Network("../../PowerModels/test/data/case14.m")
+        net = Network("../../PowerModels/test/data/matpower/case14.m")
         @test size(PMA.bus(net))[1] == 14
         add_bus!(net)
         add_gen!(net)
