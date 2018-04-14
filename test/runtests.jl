@@ -7,6 +7,10 @@ using Logging
 # suppress warnings during testing
 Logging.configure(level=ERROR)
 
+using Memento
+setlevel!(getlogger(InfrastructureModels), "error")
+setlevel!(getlogger(PowerModels), "error")
+
 using JuMP
 using PowerModels
 PMs = PowerModels
