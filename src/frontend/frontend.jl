@@ -423,6 +423,7 @@ function Network(casepath::AbstractString)
     return Network(matpower2pmc(casepath))
 end
 
+"""
     add_bus!(
         net::Network;
         bus_type::Int=0,
@@ -1234,7 +1235,7 @@ function network2pmc(
             "br_x" => (!there || !ismissing(r[:element_id])) ? r[:reactance] : old["br_x"],
             "br_b" => (!there || !ismissing(r[:element_id])) ? r[:susceptance] : old["br_b"],
             "angmin" => (!there || !ismissing(r[:element_id])) ? r[:ang_min] : old["angmin"],
-            "angmax" => (!there || !ismissing(r[:element_id])) ? r[:ang_max] : old["andmax"],
+            "angmax" => (!there || !ismissing(r[:element_id])) ? r[:ang_max] : old["angmax"],
             "b_to" => (!there || !ismissing(r[:element_id])) ? r[:p_to] : old["b_to"],
             "b_fr" => (!there || !ismissing(r[:element_id])) ? r[:p_from] : old["b_fr"],
             "g_to" => (!there || !ismissing(r[:element_id])) ? r[:q_to] : old["g_to"],
@@ -1468,7 +1469,7 @@ Check if the total demand can be satisfied by the generators. Returns `true` in 
 solution is possible.
 """
 function infeasible(net::Network)
-    tot_load = sum(pi_load(net)[:load])
+    tot_load = sum(pi_load(net)[:load_p])
     max_gen = sum(gen(net)[:p_max])
     return tot_load > max_gen
 end
