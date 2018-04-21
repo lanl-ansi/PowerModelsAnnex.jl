@@ -1,16 +1,16 @@
+"""
+This function inputs the ref dictionary produced by the PowerModels parser &
+checks whether the network is islanded (based on the branch + dc_line "status"
+entries).
+
+The output is a new dictionary which has the same data, split per island of the 
+network.
+
+04/21/18 [cjc] 
+This function is not currently maintained and may be out of date.
+Use of PowerModels.connected_components (added in v0.6.0) is suitable alternative
+"""
 function network_islanding(ref)
-
-  #=
-  This function inputs the ref dictionary produced by the PowerModels parser &
-  checks whether the network is islanded (based on the branch + dc_line "status"
-  entries).
-
-  The output is a new dictionary which has the same data, split per island of the
-  network.
-
-
-  =#
-
   #--
   function buspair_parameters(arcs_from, branches, buses)
     buspair_indexes = collect(Set([(i,j) for (l,i,j) in arcs_from]))
