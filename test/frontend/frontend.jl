@@ -35,7 +35,7 @@ end
 
 @testset "PowerModels Network" begin
     @testset "Piecewise linear costs" begin
-        net = Network("../../PowerModels/test/data/case14.m")
+        net = Network("../../PowerModels/test/data/matpower/case14.m")
         @test size(PMA.bus(net))[1] == 14
         add_bus!(net)
         add_gen!(net)
@@ -63,7 +63,7 @@ end
 
 
     @testset "Polynomial costs" begin
-        net = Network("../../PowerModels/test/data/case14.m")
+        net = Network("../../PowerModels/test/data/matpower/case14.m")
         @test size(PMA.bus(net))[1] == 14
         add_bus!(net)
         add_gen!(net)
@@ -113,12 +113,9 @@ end
     @test isa(pm, Dict)
     @test "branch" in keys(pm)
     PMA.applyunits!(net)
-    @test isa(net.pi_load[:load], Array{Union{<:Unitful.Quantity, Missings.Missing}})
+    @test isa(net.pi_load[:load_p], Array{Union{<:Unitful.Quantity, Missings.Missing}})
     PMA.stripunits!(net)
-    @test isa(net.pi_load[:load], Array{Union{Missings.Missing,Float64}})
+    @test isa(net.pi_load[:load_p], Array{Union{Missings.Missing,Float64}})
     @test_throws UndefVarError applyunits!(Dict{String, AbstractArray}())
     @test_throws UndefVarError stripunits!(Dict{String, AbstractArray}())
-    net = Network()
-    @test isempty(PMA.pmc(net))
-    @test isempty(PMA.pi_load(net))
 end

@@ -115,6 +115,8 @@ function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerM
     bus = pm.ref[:nw][n][:bus][i]
     bus_arcs = pm.ref[:nw][n][:bus_arcs][i]
     bus_gens = pm.ref[:nw][n][:bus_gens][i]
+    bus_loads = pm.ref[:nw][n][:bus_loads][i]
+    bus_shunts = pm.ref[:nw][n][:bus_shunts][i]
 
     load_factor = pm.var[:nw][n][:load_factor]
     v = pm.var[:nw][n][:vm]
@@ -123,14 +125,30 @@ function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerM
     pg = pm.var[:nw][n][:pg]
     qg = pm.var[:nw][n][:qg]
 
-    if bus["pd"] > 0 && bus["qd"] > 0
-        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - bus["pd"]*load_factor - bus["gs"]*v[i]^2)
+    if length(bus_loads) > 0
+        pd = sum([pm.ref[:nw][n][:load][i]["pd"] for i in bus_loads])
+        qd = sum([pm.ref[:nw][n][:load][i]["qd"] for i in bus_loads])
     else
-        # super fallback impl
-        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - bus["pd"] - bus["gs"]*v[i]^2)
+        pd = 0.0
+        qd = 0.0
     end
 
-    @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - bus["qd"] + bus["bs"]*v[i]^2)
+    if length(bus_shunts) > 0 
+        gs = sum([pm.ref[:nw][n][:shunt][i]["gs"] for i in bus_shunts])
+        bs = sum([pm.ref[:nw][n][:shunt][i]["bs"] for i in bus_shunts])
+    else
+        gs = 0.0
+        bs = 0.0
+    end
+
+    if pd > 0.0 && qd > 0.0
+        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd*load_factor - gs*v[i]^2)
+    else
+        # super fallback impl
+        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd - gs*v[i]^2)
+    end
+
+    @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*v[i]^2)
 end
 constraint_kcl_shunt_scaled(pm::GenericPowerModel, i::Int) = constraint_kcl_shunt_scaled(pm, pm.cnw, i)
 
@@ -142,12 +160,12 @@ function get_api_solution(pm::GenericPowerModel, sol::Dict{String,Any})
     PMs.add_branch_flow_setpoint(sol, pm)
 
     # extension
-    add_bus_demand_setpoint(sol, pm)
+    add_load_demand_setpoint(sol, pm)
 end
 
 ""
-function add_bus_demand_setpoint(sol, pm::GenericPowerModel)
+function add_load_demand_setpoint(sol, pm::GenericPowerModel)
     mva_base = pm.data["baseMVA"]
-    PMs.add_setpoint(sol, pm, "bus", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item) -> item["pd"] > 0 && item["qd"] > 0 ? x*item["pd"] : item["pd"], extract_var = (var,idx,item) -> var)
-    PMs.add_setpoint(sol, pm, "bus", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item) -> item["qd"], extract_var = (var,idx,item) -> var)
+    PMs.add_setpoint(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item) -> item["pd"] > 0 && item["qd"] > 0 ? x*item["pd"] : item["pd"], extract_var = (var,idx,item) -> var)
+    PMs.add_setpoint(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item) -> item["qd"], extract_var = (var,idx,item) -> var)
 end

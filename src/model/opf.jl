@@ -32,16 +32,23 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
     end
 
     for (i,bus) in ref[:bus]
+        bus_loads = [ref[:load][l] for l in ref[:bus_loads][i]]
+        bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
+
         # Bus KCL
         @constraint(model, 
-            sum(p[a] for a in ref[:bus_arcs][i]) + 
-            sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
-            sum(pg[g] for g in ref[:bus_gens][i]) - bus["pd"] - bus["gs"]*vm[i]^2
+            sum(p[a] for a in ref[:bus_arcs][i]) +
+            sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
+            sum(pg[g] for g in ref[:bus_gens][i]) -
+            sum(load["pd"] for load in bus_loads) -
+            sum(shunt["gs"] for shunt in bus_shunts)*vm[i]^2
         )
         @constraint(model, 
-            sum(q[a] for a in ref[:bus_arcs][i]) + 
+            sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
-            sum(qg[g] for g in ref[:bus_gens][i]) - bus["qd"] + bus["bs"]*vm[i]^2
+            sum(qg[g] for g in ref[:bus_gens][i]) -
+            sum(load["qd"] for load in bus_loads) +
+            sum(shunt["bs"] for shunt in bus_shunts)*vm[i]^2
         )
     end
 
@@ -62,15 +69,18 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
         # Line Flow
         g, b = PMs.calc_branch_y(branch)
         tr, ti = PMs.calc_branch_t(branch)
-        c = branch["br_b"]
+        g_fr = branch["g_fr"]
+        b_fr = branch["b_fr"]
+        g_to = branch["g_to"]
+        b_to = branch["b_to"]
         tm = branch["tap"]^2
 
         # AC Line Flow Constraints
-        @NLconstraint(model, p_fr == g/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
-        @NLconstraint(model, q_fr == -(b+c/2)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        @NLconstraint(model, p_fr ==  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        @NLconstraint(model, q_fr == -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
 
-        @NLconstraint(model, p_to == g*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
-        @NLconstraint(model, q_to == -(b+c/2)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        @NLconstraint(model, p_to ==  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        @NLconstraint(model, q_to == -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
 
         # Phase Angle Difference Limit
         @constraint(model, va_fr - va_to <= branch["angmax"])
@@ -129,16 +139,23 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
     end
 
     for (i,bus) in ref[:bus]
+        bus_loads = [ref[:load][l] for l in ref[:bus_loads][i]]
+        bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
+
         # Bus KCL
         @constraint(model, 
-            sum(p[a] for a in ref[:bus_arcs][i]) + 
+            sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
-            sum(pg[g] for g in ref[:bus_gens][i]) - bus["pd"] - bus["gs"]*w[i]
+            sum(pg[g] for g in ref[:bus_gens][i]) -
+            sum(load["pd"] for load in bus_loads) -
+            sum(shunt["gs"] for shunt in bus_shunts)*w[i]
         )
         @constraint(model, 
-            sum(q[a] for a in ref[:bus_arcs][i]) + 
-            sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
-            sum(qg[g] for g in ref[:bus_gens][i]) - bus["qd"] + bus["bs"]*w[i]
+            sum(q[a] for a in ref[:bus_arcs][i]) +
+            sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
+            sum(qg[g] for g in ref[:bus_gens][i]) -
+            sum(load["qd"] for load in bus_loads) +
+            sum(shunt["bs"] for shunt in bus_shunts)*w[i]
         )
     end
 
@@ -160,15 +177,18 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
         # Line Flow
         g, b = PMs.calc_branch_y(branch)
         tr, ti = PMs.calc_branch_t(branch)
-        c = branch["br_b"]
+        g_fr = branch["g_fr"]
+        b_fr = branch["b_fr"]
+        g_to = branch["g_to"]
+        b_to = branch["b_to"]
         tm = branch["tap"]^2
 
         # AC Line Flow Constraints
-        @constraint(model, p_fr == g/tm*w_fr + (-g*tr+b*ti)/tm*(wr_br) + (-b*tr-g*ti)/tm*(wi_br) )
-        @constraint(model, q_fr == -(b+c/2)/tm*w_fr - (-b*tr-g*ti)/tm*(wr_br) + (-g*tr+b*ti)/tm*(wi_br) )
+        @constraint(model, p_fr ==  (g+g_fr)/tm*w_fr + (-g*tr+b*ti)/tm*(wr_br) + (-b*tr-g*ti)/tm*(wi_br) )
+        @constraint(model, q_fr == -(b+b_fr)/tm*w_fr - (-b*tr-g*ti)/tm*(wr_br) + (-g*tr+b*ti)/tm*(wi_br) )
 
-        @constraint(model, p_to == g*w_to + (-g*tr-b*ti)/tm*(wr_br) + (-b*tr+g*ti)/tm*(-wi_br) )
-        @constraint(model, q_to == -(b+c/2)*w_to - (-b*tr+g*ti)/tm*(wr_br) + (-g*tr-b*ti)/tm*(-wi_br) )
+        @constraint(model, p_to ==  (g+g_to)*w_to + (-g*tr-b*ti)/tm*(wr_br) + (-b*tr+g*ti)/tm*(-wi_br) )
+        @constraint(model, q_to == -(b+b_to)*w_to - (-b*tr+g*ti)/tm*(wr_br) + (-g*tr-b*ti)/tm*(-wi_br) )
 
         # Phase Angle Difference Limit
         @constraint(model, wi_br <= tan(branch["angmax"])*wr_br)
@@ -221,11 +241,16 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
     end
 
     for (i,bus) in ref[:bus]
+        bus_loads = [ref[:load][l] for l in ref[:bus_loads][i]]
+        bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
+
         # Bus KCL
         @constraint(model, 
-            sum(p_expr[a] for a in ref[:bus_arcs][i]) + 
+            sum(p_expr[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
-            sum(pg[g] for g in ref[:bus_gens][i]) - bus["pd"] - bus["gs"]*1.0^2
+            sum(pg[g] for g in ref[:bus_gens][i]) -
+            sum(load["pd"] for load in bus_loads) -
+            sum(shunt["gs"] for shunt in bus_shunts)*1.0^2
         )
     end
 

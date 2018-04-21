@@ -7,6 +7,10 @@ using Logging
 # suppress warnings during testing
 Logging.configure(level=ERROR)
 
+using Memento
+setlevel!(getlogger(InfrastructureModels), "error")
+setlevel!(getlogger(PowerModels), "error")
+
 using JuMP
 using PowerModels
 PMs = PowerModels
@@ -20,16 +24,16 @@ ipopt_solver = IpoptSolver(tol=1e-6, print_level=0)
 
 # this will work because PowerModels is a dependency
 case_files = [
-    "../../PowerModels/test/data/case3.m",
-    "../../PowerModels/test/data/case5.m",
-    "../../PowerModels/test/data/case5_asym.m",
-    "../../PowerModels/test/data/case5_dc.m",
-    "../../PowerModels/test/data/case14.m",
-    "../../PowerModels/test/data/case24.m",
-    "../../PowerModels/test/data/case30.m"
+    "../../PowerModels/test/data/matpower/case3.m",
+    "../../PowerModels/test/data/matpower/case5.m",
+    "../../PowerModels/test/data/matpower/case5_asym.m",
+    "../../PowerModels/test/data/matpower/case5_dc.m",
+    "../../PowerModels/test/data/matpower/case14.m",
+    "../../PowerModels/test/data/matpower/case24.m",
+    "../../PowerModels/test/data/matpower/case30.m"
 ]
 
-@testset "PowerModelsAnnex" begin # Just so we get a summary in the end
+@testset "PowerModelsAnnex" begin
 
 include("form/wr.jl")
 
