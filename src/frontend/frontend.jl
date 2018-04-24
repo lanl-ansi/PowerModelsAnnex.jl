@@ -1278,7 +1278,7 @@ function network2pmc(
             "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["index"],
             "load_bus" => (!there || !ismissing(r[:element_id])) ? r[:bus] : old["load_bus"],
             "qd" => (!there || !ismissing(r[:element_id])) ? r[:load_q] : old["qd"],
-            "pq" => (!there || !ismissing(r[:element_id])) ? r[:load_p] : old["pd"],
+            "pd" => (!there || !ismissing(r[:element_id])) ? r[:load_p] : old["pd"],
             "status" => (!there || !ismissing(r[:element_id])) ? r[:status] : old["status"],
         )
     end
