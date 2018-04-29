@@ -56,7 +56,7 @@ end
 
 "variable: load_factor >= 1.0"
 function variable_load_factor(pm::GenericPowerModel)
-    pm.var[:nw][pm.cnw][:load_factor] = @variable(pm.model,
+    var(pm)[:load_factor] = @variable(pm.model,
         basename="load_factor",
         lowerbound=1.0,
         start = 1.0
@@ -74,9 +74,9 @@ function objective_max_loading_voltage_norm(pm::GenericPowerModel)
     load_factor = var(pm, :load_factor)
 
     scale = length(ids(pm, :bus))
-    v = var(pm, :vm)
+    vm = var(pm, :vm)
 
-    @objective(pm.model, Max, 10*scale*load_factor - sum(((bus["vmin"] + bus["vmax"])/2 - v[i])^2 for (i,bus) in pm.ref[:bus]))
+    @objective(pm.model, Max, 10*scale*load_factor - sum(((bus["vmin"] + bus["vmax"])/2 - vm[i])^2 for (i,bus) in ref(pm, :bus)))
 end
 
 ""
@@ -84,11 +84,11 @@ function objective_max_loading_gen_output(pm::GenericPowerModel)
     # Works but adds unnecessary runtime
     load_factor = var(pm, :load_factor)
 
-    scale = length(ids(pm,:gen))
+    scale = length(ids(pm, :gen))
     pg = var(pm, :pg)
     qg = var(pm, :qg)
 
-    @NLobjective(pm.model, Max, 100*scale*load_factor - sum( (pg[i]^2 - (2*qg[i])^2)^2 for (i,gen) in pm.ref[:gen] ))
+    @NLobjective(pm.model, Max, 100*scale*load_factor - sum( (pg[i]^2 - (2*qg[i])^2)^2 for (i,gen) in ref(pm, :gen)))
 end
 
 ""
@@ -111,46 +111,46 @@ function upperbound_negative_active_generation(pm::GenericPowerModel)
 end
 
 ""
-function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}, n::Int, i::Int)
-    bus = pm.ref[:nw][n][:bus][i]
-    bus_arcs = pm.ref[:nw][n][:bus_arcs][i]
-    bus_gens = pm.ref[:nw][n][:bus_gens][i]
-    bus_loads = pm.ref[:nw][n][:bus_loads][i]
-    bus_shunts = pm.ref[:nw][n][:bus_shunts][i]
+function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}, n::Int, h::Int, i::Int)
+    bus = ref(pm, n, :bus, i)
+    bus_arcs = ref(pm, n, :bus_arcs, i)
+    bus_gens = ref(pm, n, :bus_gens, i)
+    bus_loads = ref(pm, n, :bus_loads, i)
+    bus_shunts = ref(pm, n, :bus_shunts, i)
 
-    load_factor = pm.var[:nw][n][:load_factor]
-    v = pm.var[:nw][n][:vm]
-    p = pm.var[:nw][n][:p]
-    q = pm.var[:nw][n][:q]
-    pg = pm.var[:nw][n][:pg]
-    qg = pm.var[:nw][n][:qg]
+    load_factor = var(pm, n, h, :load_factor)
+    vm = var(pm, n, h, :vm, i)
+    p = var(pm, n, h, :p)
+    q = var(pm, n, h, :q)
+    pg = var(pm, n, h, :pg)
+    qg = var(pm, n, h, :qg)
 
     if length(bus_loads) > 0
-        pd = sum([pm.ref[:nw][n][:load][i]["pd"] for i in bus_loads])
-        qd = sum([pm.ref[:nw][n][:load][i]["qd"] for i in bus_loads])
+        pd = sum([ref(pm, n, :load, i, "pd", h) for i in bus_loads])
+        qd = sum([ref(pm, n, :load, i, "qd", h) for i in bus_loads])
     else
         pd = 0.0
         qd = 0.0
     end
 
     if length(bus_shunts) > 0 
-        gs = sum([pm.ref[:nw][n][:shunt][i]["gs"] for i in bus_shunts])
-        bs = sum([pm.ref[:nw][n][:shunt][i]["bs"] for i in bus_shunts])
+        gs = sum([ref(pm, n, :shunt, i, "gs", h) for i in bus_shunts])
+        bs = sum([ref(pm, n, :shunt, i, "bs", h) for i in bus_shunts])
     else
         gs = 0.0
         bs = 0.0
     end
 
     if pd > 0.0 && qd > 0.0
-        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd*load_factor - gs*v[i]^2)
+        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd*load_factor - gs*vm^2)
     else
         # super fallback impl
-        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd - gs*v[i]^2)
+        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd - gs*vm^2)
     end
 
-    @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*v[i]^2)
+    @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*vm^2)
 end
-constraint_kcl_shunt_scaled(pm::GenericPowerModel, i::Int) = constraint_kcl_shunt_scaled(pm, pm.cnw, i)
+constraint_kcl_shunt_scaled(pm::GenericPowerModel, i::Int) = constraint_kcl_shunt_scaled(pm, pm.cnw, pm.cph, i)
 
 
 ""

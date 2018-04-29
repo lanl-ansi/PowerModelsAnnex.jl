@@ -2,23 +2,21 @@
 
 NLForms = Union{NLSOCWROAForm, NLACRForm}
 
-"a copy of the standard objective_min_fuel_cost, but with an NL objective to force NL path"
-function PMs.objective_min_fuel_cost{T <: NLForms}(pm::GenericPowerModel{T}, nws=[pm.cnw])
-    PMs.check_cost_models(pm, nws)
-
-    pg = Dict(n => pm.var[:nw][n][:pg] for n in nws)
-    dc_p = Dict(n => pm.var[:nw][n][:p_dc] for n in nws)
+""
+function objective_min_polynomial_fuel_cost(pm::GenericPowerModel{T}) where T <: NLForms
+    PMs.check_polynomial_cost_models(pm)
 
     from_idx = Dict()
-    for n in nws
-        ref = pm.ref[:nw][n]
-        from_idx[n] = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
+    for (n, nw_ref) in nws(pm)
+        from_idx[n] = Dict(arc[1] => arc for arc in nw_ref[:arcs_from_dc])
     end
 
-    return @NLobjective(pm.model, Min, 
+    return @NLobjective(pm.model, Min,
         sum(
-            sum(gen["cost"][1]*pg[n][i]^2 + gen["cost"][2]*pg[n][i] + gen["cost"][3] for (i,gen) in pm.ref[:nw][n][:gen]) +
-            sum(dcline["cost"][1]*dc_p[n][from_idx[n][i]]^2 + dcline["cost"][2]*dc_p[n][from_idx[n][i]] + dcline["cost"][3] for (i,dcline) in pm.ref[:nw][n][:dcline])
-        for n in nws)
+            sum(
+                sum(   getmpv(gen["cost"],h)[1]*var(pm, n, h, :pg, i)^2 + getmpv(gen["cost"],h)[2]*var(pm, n, h, :pg, i) + getmpv(gen["cost"],h)[3] for (i,gen) in nw_ref[:gen]) +
+                sum(getmpv(dcline["cost"],h)[1]*var(pm, n, h, :p_dc, from_idx[n][i])^2 + getmpv(dcline["cost"],h)[2]*var(pm, n, h, :p_dc, from_idx[n][i]) + getmpv(dcline["cost"],h)[3] for (i,dcline) in nw_ref[:dcline])
+            for h in phase_ids(pm, n))
+        for (n, nw_ref) in nws(pm))
     )
 end
