@@ -6,7 +6,7 @@ function run_ac_pf_model(data, solver)
 end
 
 @testset "test ac polar pf" begin
-    @testset "case $(case_file)" for case_file in case_files
+    @testset "case $(case_file)" for (name, case_file) in case_files
         data = PMs.parse_file(case_file)
         pf_status, pf_model = run_ac_pf_model(data, ipopt_solver)
         pm_result = run_ac_pf(data, ipopt_solver)
@@ -42,7 +42,7 @@ function run_soc_pf_model(data, solver)
 end
 
 @testset "test soc w pf" begin
-    @testset "case $(case_file)" for case_file in case_files
+    @testset "case $(case_file)" for (name, case_file) in case_files
         data = PMs.parse_file(case_file)
         pf_status, pf_model = run_soc_pf_model(data, ipopt_solver)
         pm_result = run_pf(data, SOCWRPowerModel, ipopt_solver)
@@ -82,7 +82,7 @@ function run_dc_pf_model(data, solver)
 end
 
 @testset "test dc polar pf" begin
-    @testset "case $(case_file)" for case_file in case_files
+    @testset "case $(case_file)" for (name, case_file) in case_files
         data = PMs.parse_file(case_file)
         pf_status, pf_model = run_dc_pf_model(data, ipopt_solver)
         pm_result = run_dc_pf(data, ipopt_solver)

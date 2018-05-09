@@ -19,14 +19,14 @@ using Base.Test
 ipopt_solver = IpoptSolver(tol=1e-6, print_level=0)
 
 # this will work because PowerModels is a dependency
-case_files = [
-    "../../PowerModels/test/data/matpower/case3.m",
-    "../../PowerModels/test/data/matpower/case5.m",
-    "../../PowerModels/test/data/matpower/case5_asym.m",
-    "../../PowerModels/test/data/matpower/case5_dc.m",
-    "../../PowerModels/test/data/matpower/case14.m",
-    "../../PowerModels/test/data/matpower/case30.m"
-]
+case_files = Dict(
+    "case3"      => "../../PowerModels/test/data/matpower/case3.m",
+    "case5"      => "../../PowerModels/test/data/matpower/case5.m",
+    "case5_asym" => "../../PowerModels/test/data/matpower/case5_asym.m",
+    "case5_dc"   => "../../PowerModels/test/data/matpower/case5_dc.m",
+    "case14"     => "../../PowerModels/test/data/matpower/case14.m",
+    "case30"     => "../../PowerModels/test/data/matpower/case30.m"
+)
 
 @testset "PowerModelsAnnex" begin
 
