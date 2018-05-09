@@ -12,10 +12,10 @@ const SOCWROAPowerModel = PMs.GenericPowerModel{SOCWROAForm}
 SOCWROAPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, SOCWROAForm; kwargs...)
 
 ""
-function PMs.objective_min_fuel_cost{T <: SOCWROAForm}(pm::GenericPowerModel{T}, nws=[pm.cnw])
+function PMs.objective_min_fuel_cost{T <: SOCWROAForm}(pm::GenericPowerModel{T})
     @assert !(pm.data["multinetwork"])
 
-    PMs.check_cost_models(pm, nws)
+    PMs.check_cost_models(pm)
 
     pg = var(pm, :pg)
     dc_p = var(pm, :p_dc)
