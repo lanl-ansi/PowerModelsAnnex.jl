@@ -133,9 +133,28 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
     )
 
-    for (i,j) in keys(ref[:buspairs])
-        # Voltage Product Relaxation
+    for (bp, buspair) in ref[:buspairs]
+        i,j = bp
+
+        # Voltage Product Relaxation Lowerbound
         @constraint(model, wr[(i,j)]^2 + wi[(i,j)]^2 <= w[i]*w[j])
+
+        vfub = buspair["vm_fr_max"]
+        vflb = buspair["vm_fr_min"]
+        vtub = buspair["vm_to_max"]
+        vtlb = buspair["vm_to_min"]
+        tdub = buspair["angmax"]
+        tdlb = buspair["angmin"]
+
+        phi = (tdub + tdlb)/2
+        d   = (tdub - tdlb)/2
+
+        sf = vflb + vfub
+        st = vtlb + vtub
+
+        # Voltage Product Relaxation Upperbound
+        @constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtub*cos(d)*st*w[i] - vfub*cos(d)*sf*w[j] >=  vfub*vtub*cos(d)*(vflb*vtlb - vfub*vtub))
+        @constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtlb*cos(d)*st*w[i] - vflb*cos(d)*sf*w[j] >= -vflb*vtlb*cos(d)*(vflb*vtlb - vfub*vtub))
     end
 
     for (i,bus) in ref[:bus]

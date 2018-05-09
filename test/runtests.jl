@@ -23,6 +23,7 @@ case_files = Dict(
     "case3"      => "../../PowerModels/test/data/matpower/case3.m",
     "case5"      => "../../PowerModels/test/data/matpower/case5.m",
     "case5_asym" => "../../PowerModels/test/data/matpower/case5_asym.m",
+    "case5_gap"  => "../../PowerModels/test/data/matpower/case5_gap.m",
     "case5_dc"   => "../../PowerModels/test/data/matpower/case5_dc.m",
     "case14"     => "../../PowerModels/test/data/matpower/case14.m",
     "case30"     => "../../PowerModels/test/data/matpower/case30.m"

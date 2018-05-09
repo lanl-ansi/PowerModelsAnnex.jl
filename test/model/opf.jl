@@ -12,6 +12,8 @@ end
         pm_result = run_ac_opf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
 
+        @test isapprox(getobjectivevalue(opf_model), pm_result["objective"]; atol = 1e-5)
+
         base_mva = data["baseMVA"]
 
         for (i, bus) in data["bus"]
@@ -46,6 +48,8 @@ end
         opf_status, opf_model = run_soc_opf_model(data, ipopt_solver)
         pm_result = run_opf(data, SOCWRPowerModel, ipopt_solver)
         pm_sol = pm_result["solution"]
+
+        @test isapprox(getobjectivevalue(opf_model), pm_result["objective"]; atol = 1e-5)
 
         base_mva = data["baseMVA"]
 
@@ -87,6 +91,8 @@ end
 
         #println(opf_status)
         #println(pm_result["status"])
+
+        @test isapprox(getobjectivevalue(opf_model), pm_result["objective"]; atol = 1e-5)
 
         # needed becouse some test networks are not DC feasible
         if pm_result["status"] == :LocalOptimal
