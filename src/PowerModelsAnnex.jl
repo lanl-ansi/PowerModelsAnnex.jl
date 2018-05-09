@@ -3,7 +3,12 @@ module PowerModelsAnnex
 using Compat
 using JuMP
 using PowerModels
-PMs = PowerModels
+using Memento
+
+const LOGGER = getlogger(PowerModels)
+
+const PMs = PowerModels
+
 
 include("form/acr.jl")
 include("form/wr.jl")

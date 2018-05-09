@@ -289,7 +289,7 @@ function Network(pmc::Dict)
         row = aux[k]["cost"]
         if aux[k]["model"] == 1
             if length(row) % 2 != 0
-                error("The type selected (PWL) and the cost data are incompatible")
+                error(LOGGER, "The type selected (PWL) and the cost data are incompatible")
             end
             tmp_ncost = length(row) / 2
             idx = range(1, tmp_ncost)
@@ -305,7 +305,7 @@ function Network(pmc::Dict)
         end
     end
     if !isempty(to_warn)
-        warn("Unable to set the costs for keys $to_warn. Please check.")
+        warn(LOGGER, "Unable to set the costs for keys $to_warn. Please check.")
     end
     cost_gen_df = build_df_from_pmc(cost_columns, aux)
     cost_gen_df[:element_id] = collect(1:size(cost_gen_df)[1])
@@ -461,7 +461,7 @@ function add_bus!(
         end
         element_id = isempty(ids) ? 1 : maximum(ids) + 1
         if control
-            warn(w * "Using id = $element_id instead.")
+            warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
     name == "none" ? name = "bus_" * string(element_id) : nothing
@@ -527,7 +527,7 @@ function add_gen!(
         end
         element_id = isempty(ids) ? 1 : maximum(ids) + 1
         if control
-            warn(w * "Using id = $element_id instead.")
+            warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
     push!(net.gen, (Any[
@@ -577,7 +577,7 @@ function add_pi_load!(
         end
         element_id = isempty(ids) ? 1 : maximum(ids) + 1
         if control
-            warn(w * "Using id = $element_id instead.")
+            warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
     push!(net.pi_load, Any[bus, element_id, load_p, load_q, status])
@@ -649,7 +649,7 @@ function add_ps_load!(
         end
         element_id = isempty(ids) ? 1 : maximum(ids) + 1
         if control
-            warn(w * "Using id = $element_id instead.")
+            warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
     push!(net.ps_load, Any[bus, cost, element_id, load, load_max, status])
@@ -711,7 +711,7 @@ function add_line!(
         end
         element_id = isempty(ids) ? 1 : maximum(ids) + 1
         if control
-            warn(w * "Using id = $element_id instead.")
+            warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
     push!(net.line, Any[
@@ -828,16 +828,16 @@ struct PWLCost <: CostCurve
         cost::AbstractVector{<:Units.Currency}=Units.Currency[],
     )
         if length(mw) != length(cost)
-            error("Malformed cost curve. Please check.")
+            error(LOGGER, "Malformed cost curve. Please check.")
         else
             if (eltype(mw) == asqtype(u"MW*hr")) && (eltype(cost) <: Units.Currency)
                 if is_convex(mw, cost)
                     return new(mw, cost)
                 else
-                    error("Cost curve is not convex. Please check.")
+                    error(LOGGER, "Cost curve is not convex. Please check.")
                 end
             else
-                error("Bad units in cost curve. Please check.")
+                error(LOGGER, "Bad units in cost curve. Please check.")
             end
         end
     end
@@ -907,7 +907,7 @@ function add_cost_gen!(
         end
         element_id = isempty(ids) ? 1 : maximum(ids) + 1
         if control
-            warn(w * "Using id = $element_id instead.")
+            warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
     if ismissing(gen_id)
@@ -918,7 +918,7 @@ function add_cost_gen!(
             push!(net.cost_gen, Any[coeffs, element_id, model, ncost])
             net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
         else
-            warn("A generator with id $gen_id does not exist. Cost will not be created.")
+            warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
         end
     end
 end
@@ -953,7 +953,7 @@ function add_cost_load!(
         end
         element_id = isempty(ids) ? 1 : maximum(ids) + 1
         if control
-            warn(w * "Using id = $element_id instead.")
+            warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
     if ismissing(load_id)
@@ -967,7 +967,7 @@ function add_cost_load!(
                 :cost
             ] = element_id
         else
-            warn("A PS load with id $load_id does not exist. Cost will not be created.")
+            warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
         end
     end
 end
@@ -1003,7 +1003,7 @@ function add_cost_gen!(
         end
         element_id = isempty(ids) ? 1 : maximum(ids) + 1
         if control
-            warn(w * "Using id = $element_id instead.")
+            warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
     if ismissing(gen_id)
@@ -1014,7 +1014,7 @@ function add_cost_gen!(
             push!(net.cost_gen, Any[pwl_cost, element_id, model, ncost])
             net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
         else
-            warn("A generator with id $gen_id does not exist. Cost will not be created.")
+            warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
         end
     end
 end
@@ -1049,7 +1049,7 @@ function add_cost_load!(
         end
         element_id = isempty(ids) ? 1 : maximum(ids) + 1
         if control
-            warn(w * "Using id = $element_id instead.")
+            warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
     if ismissing(load_id)
@@ -1063,7 +1063,7 @@ function add_cost_load!(
                 :cost
             ] = element_id
         else
-            warn("A PS load with id $load_id does not exist. Cost will not be created.")
+            warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
         end
     end
 end
@@ -1146,7 +1146,7 @@ function network2pmc(
         end
     end
     if !isempty(to_warn)
-        warn("Using default costs for generator cost ids $to_warn")
+        warn(LOGGER, "Using default costs for generator cost ids $to_warn")
     end
     # Here we also need to add the price sensitive loads as generators
     last_gen = maximum(gen(net)[:element_id])
@@ -1212,7 +1212,7 @@ function network2pmc(
         end
     end
     if !isempty(to_warn)
-        warn("Used default costs for ps load cost ids $to_warn.")
+        warn(LOGGER, "Used default costs for ps load cost ids $to_warn.")
     end
     outnet["gen"] = gen_dict
     branch_dict = Dict()
@@ -1423,7 +1423,7 @@ Scale line ratings such that the maximum load is equal to `maxload`% of the orig
 """
 function max_load_percent!(net::Network, maxload::Real)
     if maxload <= 0
-        warn("Maximum load percentage has to be strictly greater than zero.")
+        warn(LOGGER, "Maximum load percentage has to be strictly greater than zero.")
     else
         # Let's update both the dataframes and the pmc such that this function can be used
         # at any moment without the risk of changes not getting through.
@@ -1451,7 +1451,7 @@ Scale line ratings such that the maximum load is equal to `maxload`% of the orig
 """
 function max_load_percent!(pmc::Dict, maxload::Real)
     if maxload <= 0
-        warn("Maximum load percentage has to be strictly greater than zero.")
+        warn(LOGGER, "Maximum load percentage has to be strictly greater than zero.")
     else
         maxload /= 100 # % to fraction
         for k in keys(pmc["branch"])

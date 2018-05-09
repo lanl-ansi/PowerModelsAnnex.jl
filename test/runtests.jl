@@ -3,10 +3,6 @@ using Unitful
 using PowerModelsAnnex.Units
 PMA = PowerModelsAnnex
 
-using Logging
-# suppress warnings during testing
-Logging.configure(level=ERROR)
-
 using Memento
 setlevel!(getlogger(InfrastructureModels), "error")
 setlevel!(getlogger(PowerModels), "error")
@@ -29,7 +25,6 @@ case_files = [
     "../../PowerModels/test/data/matpower/case5_asym.m",
     "../../PowerModels/test/data/matpower/case5_dc.m",
     "../../PowerModels/test/data/matpower/case14.m",
-    "../../PowerModels/test/data/matpower/case24.m",
     "../../PowerModels/test/data/matpower/case30.m"
 ]
 
