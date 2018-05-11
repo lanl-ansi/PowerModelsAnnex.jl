@@ -2,6 +2,7 @@ module PowerModelsAnnex
 
 using Compat
 using JuMP
+using InfrastructureModels
 using PowerModels
 using Memento
 
