@@ -35,7 +35,7 @@ end
 
 @testset "PowerModels Network" begin
     @testset "Piecewise linear costs" begin
-        net = Network("../../PowerModels/test/data/matpower/case14.m")
+        net = Network(case_files["case14"])
         @test size(PMA.bus(net))[1] == 14
         add_bus!(net)
         add_gen!(net)
@@ -63,7 +63,7 @@ end
 
 
     @testset "Polynomial costs" begin
-        net = Network("../../PowerModels/test/data/matpower/case14.m")
+        net = Network(case_files["case14"])
         @test size(PMA.bus(net))[1] == 14
         add_bus!(net)
         add_gen!(net)
@@ -88,7 +88,7 @@ end
         @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
     end
 
-    net = Network(case_files[5])
+    net = Network(case_files["case14"])
     @test !PMA.infeasible(net)
     @test size(PMA.bus(net))[1] == 14
     add_bus!(net)

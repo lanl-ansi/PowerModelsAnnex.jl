@@ -6,11 +6,13 @@ function run_ac_opf_model(data, solver)
 end
 
 @testset "test ac polar opf" begin
-    @testset "case $(case_file)" for case_file in case_files
+    @testset "case $(name)" for (name, case_file) in case_files
         data = PMs.parse_file(case_file)
         opf_status, opf_model = run_ac_opf_model(data, ipopt_solver)
         pm_result = run_ac_opf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
+
+        @test isapprox(getobjectivevalue(opf_model), pm_result["objective"]; atol = 1e-5)
 
         base_mva = data["baseMVA"]
 
@@ -43,11 +45,13 @@ function run_soc_opf_model(data, solver)
 end
 
 @testset "test soc w opf" begin
-    @testset "case $(case_file)" for case_file in case_files
+    @testset "case $(name)" for (name, case_file) in case_files
         data = PMs.parse_file(case_file)
         opf_status, opf_model = run_soc_opf_model(data, ipopt_solver)
         pm_result = run_opf(data, SOCWRPowerModel, ipopt_solver)
         pm_sol = pm_result["solution"]
+
+        @test isapprox(getobjectivevalue(opf_model), pm_result["objective"]; atol = 1e-5)
 
         base_mva = data["baseMVA"]
 
@@ -81,7 +85,7 @@ function run_dc_opf_model(data, solver)
 end
 
 @testset "test dc polar opf" begin
-    @testset "case $(case_file)" for case_file in case_files
+    @testset "case $(name)" for (name, case_file) in case_files
         data = PMs.parse_file(case_file)
         opf_status, opf_model = run_dc_opf_model(data, ipopt_solver)
         pm_result = run_dc_opf(data, ipopt_solver)
@@ -89,6 +93,8 @@ end
 
         #println(opf_status)
         #println(pm_result["status"])
+
+        @test isapprox(getobjectivevalue(opf_model), pm_result["objective"]; atol = 1e-5)
 
         # needed becouse some test networks are not DC feasible
         if pm_result["status"] == :LocalOptimal

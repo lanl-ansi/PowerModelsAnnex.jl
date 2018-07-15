@@ -13,8 +13,8 @@ SOCWROAPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(dat
 
 ""
 function PMs.objective_min_fuel_cost{T <: SOCWROAForm}(pm::GenericPowerModel{T})
-    @assert !pm.data["multinetwork"]
-    @assert !haskey(pm.data, "phases")
+    @assert !InfrastructureModels.ismultinetwork(data)
+    @assert !haskey(pm.data, "conductors")
 
     PMs.check_cost_models(pm)
 
