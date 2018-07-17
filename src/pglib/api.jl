@@ -111,31 +111,31 @@ function upperbound_negative_active_generation(pm::GenericPowerModel)
 end
 
 ""
-function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}, n::Int, h::Int, i::Int)
+function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}, n::Int, c::Int, i::Int)
     bus = ref(pm, n, :bus, i)
     bus_arcs = ref(pm, n, :bus_arcs, i)
     bus_gens = ref(pm, n, :bus_gens, i)
     bus_loads = ref(pm, n, :bus_loads, i)
     bus_shunts = ref(pm, n, :bus_shunts, i)
 
-    load_factor = var(pm, n, h, :load_factor)
-    vm = var(pm, n, h, :vm, i)
-    p = var(pm, n, h, :p)
-    q = var(pm, n, h, :q)
-    pg = var(pm, n, h, :pg)
-    qg = var(pm, n, h, :qg)
+    load_factor = var(pm, n, c, :load_factor)
+    vm = var(pm, n, c, :vm, i)
+    p = var(pm, n, c, :p)
+    q = var(pm, n, c, :q)
+    pg = var(pm, n, c, :pg)
+    qg = var(pm, n, c, :qg)
 
     if length(bus_loads) > 0
-        pd = sum([ref(pm, n, :load, i, "pd", h) for i in bus_loads])
-        qd = sum([ref(pm, n, :load, i, "qd", h) for i in bus_loads])
+        pd = sum([ref(pm, n, :load, i, "pd", c) for i in bus_loads])
+        qd = sum([ref(pm, n, :load, i, "qd", c) for i in bus_loads])
     else
         pd = 0.0
         qd = 0.0
     end
 
     if length(bus_shunts) > 0 
-        gs = sum([ref(pm, n, :shunt, i, "gs", h) for i in bus_shunts])
-        bs = sum([ref(pm, n, :shunt, i, "bs", h) for i in bus_shunts])
+        gs = sum([ref(pm, n, :shunt, i, "gs", c) for i in bus_shunts])
+        bs = sum([ref(pm, n, :shunt, i, "bs", c) for i in bus_shunts])
     else
         gs = 0.0
         bs = 0.0
@@ -150,7 +150,7 @@ function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerM
 
     @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*vm^2)
 end
-constraint_kcl_shunt_scaled(pm::GenericPowerModel, i::Int) = constraint_kcl_shunt_scaled(pm, pm.cnw, pm.cph, i)
+constraint_kcl_shunt_scaled(pm::GenericPowerModel, i::Int) = constraint_kcl_shunt_scaled(pm, pm.cnw, pm.ccnd, i)
 
 
 ""

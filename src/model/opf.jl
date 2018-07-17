@@ -6,7 +6,7 @@ Builds an AC-OPF formulation of the given data and returns the JuMP model
 """
 function post_ac_opf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
-    @assert !haskey(pm.data, "conductors")
+    @assert !haskey(data, "conductors")
 
     ref = PMs.build_ref(data)[:nw][0]
 
@@ -111,7 +111,7 @@ Builds an SOC-OPF formulation of the given data and returns the JuMP model
 """
 function post_soc_opf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
-    @assert !haskey(pm.data, "conductors")
+    @assert !haskey(data, "conductors")
 
     ref = PMs.build_ref(data)[:nw][0]
 
@@ -239,7 +239,7 @@ Builds an DC-OPF formulation of the given data and returns the JuMP model
 """
 function post_dc_opf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
-    @assert !haskey(pm.data, "conductors")
+    @assert !haskey(data, "conductors")
 
     ref = PMs.build_ref(data)[:nw][0]
 
