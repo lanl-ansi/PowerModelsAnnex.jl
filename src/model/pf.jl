@@ -6,6 +6,8 @@ Builds an AC-PF formulation of the given data and returns the JuMP model
 """
 function post_ac_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
+    @assert !haskey(data, "conductors")
+
     ref = PMs.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
@@ -120,6 +122,8 @@ Builds an SOC-PF formulation of the given data and returns the JuMP model
 """
 function post_soc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
+    @assert !haskey(data, "conductors")
+
     ref = PMs.build_ref(data)[:nw][0]
 
     @variable(model, w[i in keys(ref[:bus])] >= 0, start=1.001)
@@ -238,6 +242,8 @@ Builds an DC-PF formulation of the given data and returns the JuMP model
 """
 function post_dc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
+    @assert !haskey(data, "conductors")
+
     ref = PMs.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])

@@ -20,6 +20,7 @@ end
             if bus["bus_type"] != 4
                 index = parse(Int, i)
                 #println("$i, $(getvalue(opf_model[:va][index])), $(pm_sol["bus"][i]["va"])")
+                #println("$i, $(getvalue(opf_model[:vm][index])), $(pm_sol["bus"][i]["vm"])")
                 @test isapprox(getvalue(opf_model[:va][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
                 @test isapprox(getvalue(opf_model[:vm][index]), pm_sol["bus"][i]["vm"])
             end
@@ -28,6 +29,7 @@ end
         for (i, gen) in data["gen"]
             if gen["gen_status"] != 0
                 index = parse(Int, i)
+                #println("$i, $(getvalue(opf_model[:pg][index])), $(pm_sol["gen"][i]["pg"])")
                 @test isapprox(getvalue(opf_model[:pg][index]), pm_sol["gen"][i]["pg"])
                 # multiple generators at one bus can cause this to be non-unqiue
                 #@test isapprox(getvalue(opf_model[:qg][index]), pm_sol["gen"][i]["qg"])
