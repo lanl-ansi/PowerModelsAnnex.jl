@@ -108,7 +108,7 @@ const QCWRTriNoLinkPowerModel = PMs.GenericPowerModel{QCWRTriNoLinkForm}
 "default QC trilinear without linking constraint model constructor"
 QCWRTriNoLinkPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, QCWRTriNoLinkForm; kwargs...)
 
-function constraint_voltage(pm::GenericPowerModel{T}, n::Int, c::Int) where T <: QCWRTriNoLinkForm
+function PMs.constraint_voltage(pm::GenericPowerModel{T}, n::Int, c::Int) where T <: QCWRTriNoLinkForm
     v = var(pm, n, c, :vm)
     t = var(pm, n, c, :va)
 
@@ -130,8 +130,8 @@ function constraint_voltage(pm::GenericPowerModel{T}, n::Int, c::Int) where T <:
         i,j = bp
         @constraint(pm.model, t[i] - t[j] == td[bp])
 
-        relaxation_sin(pm.model, td[bp], si[bp])
-        relaxation_cos(pm.model, td[bp], cs[bp])
+        PMs.relaxation_sin(pm.model, td[bp], si[bp])
+        PMs.relaxation_cos(pm.model, td[bp], cs[bp])
         InfrastructureModels.relaxation_trilinear(pm.model, v[i], v[j], cs[bp], wr[bp], lambda_wr[bp,:])
         InfrastructureModels.relaxation_trilinear(pm.model, v[i], v[j], si[bp], wi[bp], lambda_wi[bp,:])
 
@@ -145,8 +145,8 @@ function constraint_voltage(pm::GenericPowerModel{T}, n::Int, c::Int) where T <:
 
         # to prevent this constraint from being posted on multiple parallel branchs
         if buspair["branch"] == i
-            constraint_power_magnitude_sqr(pm, i, nw=n, cnd=c)
-            constraint_power_magnitude_link(pm, i, nw=n, cnd=c)
+            PMs.constraint_power_magnitude_sqr(pm, i, nw=n, cnd=c)
+            PMs.constraint_power_magnitude_link(pm, i, nw=n, cnd=c)
         end
     end
 
