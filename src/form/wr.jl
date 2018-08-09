@@ -97,5 +97,58 @@ NLSOCWRPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(dat
 
 
 
+# Defines a variant of the QCWRTriForm without the linking constraints
 
+export QCWRTriNoLinkPowerModel, QCWRTriNoLinkForm
+
+@compat abstract type QCWRTriNoLinkForm <: PMs.QCWRTriForm end
+
+const QCWRTriNoLinkPowerModel = PMs.GenericPowerModel{QCWRTriNoLinkForm}
+
+"default QC trilinear without linking constraint model constructor"
+QCWRTriNoLinkPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, QCWRTriNoLinkForm; kwargs...)
+
+function constraint_voltage(pm::GenericPowerModel{T}, n::Int, c::Int) where T <: QCWRTriNoLinkForm
+    v = var(pm, n, c, :vm)
+    t = var(pm, n, c, :va)
+
+    td = var(pm, n, c, :td)
+    si = var(pm, n, c, :si)
+    cs = var(pm, n, c, :cs)
+
+    w = var(pm, n, c, :w)
+    wr = var(pm, n, c, :wr)
+    lambda_wr = var(pm, n, c, :lambda_wr)
+    wi = var(pm, n, c, :wi)
+    lambda_wi = var(pm, n, c, :lambda_wi)
+
+    for (i,b) in ref(pm, n, :bus)
+        InfrastructureModels.relaxation_sqr(pm.model, v[i], w[i])
+    end
+
+    for bp in ids(pm, n, :buspairs)
+        i,j = bp
+        @constraint(pm.model, t[i] - t[j] == td[bp])
+
+        relaxation_sin(pm.model, td[bp], si[bp])
+        relaxation_cos(pm.model, td[bp], cs[bp])
+        InfrastructureModels.relaxation_trilinear(pm.model, v[i], v[j], cs[bp], wr[bp], lambda_wr[bp,:])
+        InfrastructureModels.relaxation_trilinear(pm.model, v[i], v[j], si[bp], wi[bp], lambda_wi[bp,:])
+
+        # this constraint is redudant and useful for debugging
+        #InfrastructureModels.relaxation_complex_product(pm.model, w[i], w[j], wr[bp], wi[bp])
+   end
+
+   for (i,branch) in ref(pm, n, :branch)
+        pair = (branch["f_bus"], branch["t_bus"])
+        buspair = ref(pm, n, :buspairs, pair)
+
+        # to prevent this constraint from being posted on multiple parallel branchs
+        if buspair["branch"] == i
+            constraint_power_magnitude_sqr(pm, i, nw=n, cnd=c)
+            constraint_power_magnitude_link(pm, i, nw=n, cnd=c)
+        end
+    end
+
+end
 
