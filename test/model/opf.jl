@@ -166,3 +166,17 @@ end
     end
 end
 
+
+
+function run_file(file_name)
+    include(file_name)
+    return nlp_solver, data, status, cost
+end
+
+
+@testset "test ac polar opf" begin
+    solver, data, status, cost = run_file("../../src/model/ac-opf.jl")
+    pm_result = run_ac_opf(data, solver)
+    @test isapprox(cost, pm_result["objective"]; atol = 1e-6)
+end
+
