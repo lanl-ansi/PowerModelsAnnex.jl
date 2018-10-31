@@ -31,15 +31,15 @@ case_files = Dict(
 
 @testset "PowerModelsAnnex" begin
 
-    #include("form/acr.jl")
-    #include("form/wr.jl")
+    include("form/acr.jl")
+    include("form/wr.jl")
 
-    #include("pglib/api.jl")
-    #include("pglib/sad.jl")
+    include("pglib/api.jl")
+    include("pglib/sad.jl")
 
-    #include("model/pf.jl")
+    include("model/pf.jl")
     include("model/opf.jl")
 
-    #include("frontend/frontend.jl")
+    include("frontend/frontend.jl")
 
 end
