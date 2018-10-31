@@ -8,7 +8,7 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
-    ref = PMs.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
     @variable(model, ref[:bus][i]["vmin"] <= vm[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"], start=1.0)
@@ -69,8 +69,8 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
         va_to = va[branch["t_bus"]]
 
         # Line Flow
-        g, b = PMs.calc_branch_y(branch)
-        tr, ti = PMs.calc_branch_t(branch)
+        g, b = PowerModels.calc_branch_y(branch)
+        tr, ti = PowerModels.calc_branch_t(branch)
         g_fr = branch["g_fr"]
         b_fr = branch["b_fr"]
         g_to = branch["g_to"]
@@ -113,11 +113,11 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
-    ref = PMs.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
 
-    wr_min, wr_max, wi_min, wi_max = PMs.calc_voltage_product_bounds(ref[:buspairs])
+    wr_min, wr_max, wi_min, wi_max = PowerModels.calc_voltage_product_bounds(ref[:buspairs])
 
     @variable(model, wr_min[bp] <= wr[bp in keys(ref[:buspairs])] <= wr_max[bp], start=1.0)
     @variable(model, wi_min[bp] <= wi[bp in keys(ref[:buspairs])] <= wi_max[bp])
@@ -198,8 +198,8 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
         wi_br = wi[bp_idx]
 
         # Line Flow
-        g, b = PMs.calc_branch_y(branch)
-        tr, ti = PMs.calc_branch_t(branch)
+        g, b = PowerModels.calc_branch_y(branch)
+        tr, ti = PowerModels.calc_branch_t(branch)
         g_fr = branch["g_fr"]
         b_fr = branch["b_fr"]
         g_to = branch["g_to"]
@@ -565,7 +565,7 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
-    ref = PMs.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
 
@@ -610,7 +610,7 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
         va_fr = va[branch["f_bus"]]
         va_to = va[branch["t_bus"]]
 
-        g, b = PMs.calc_branch_y(branch)
+        g, b = PowerModels.calc_branch_y(branch)
 
         # DC Line Flow Constraints
         @constraint(model, p_fr == -b*(va_fr - va_to))

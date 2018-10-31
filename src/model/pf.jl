@@ -8,7 +8,7 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
-    ref = PMs.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
     @variable(model, vm[i in keys(ref[:bus])] >= 0, start=1.0)
@@ -78,8 +78,8 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
         va_to = va[branch["t_bus"]]
 
         # Line Flow
-        g, b = PMs.calc_branch_y(branch)
-        tr, ti = PMs.calc_branch_t(branch)
+        g, b = PowerModels.calc_branch_y(branch)
+        tr, ti = PowerModels.calc_branch_t(branch)
         g_fr = branch["g_fr"]
         b_fr = branch["b_fr"]
         g_to = branch["g_to"]
@@ -124,7 +124,7 @@ function post_soc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
-    ref = PMs.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, w[i in keys(ref[:bus])] >= 0, start=1.001)
     @variable(model, wr[bp in keys(ref[:buspairs])], start=1.0)
@@ -198,8 +198,8 @@ function post_soc_pf(data::Dict{String,Any}, model=Model())
         wr_br = wr[bp_idx]
         wi_br = wi[bp_idx]
 
-        g, b = PMs.calc_branch_y(branch)
-        tr, ti = PMs.calc_branch_t(branch)
+        g, b = PowerModels.calc_branch_y(branch)
+        tr, ti = PowerModels.calc_branch_t(branch)
         g_fr = branch["g_fr"]
         b_fr = branch["b_fr"]
         g_to = branch["g_to"]
@@ -244,7 +244,7 @@ function post_dc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
-    ref = PMs.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
 
@@ -296,7 +296,7 @@ function post_dc_pf(data::Dict{String,Any}, model=Model())
         va_to = va[branch["t_bus"]]
 
         # Line Flow
-        g, b = PMs.calc_branch_y(branch)
+        g, b = PowerModels.calc_branch_y(branch)
 
         @constraint(model, p_fr == -b*(va_fr - va_to))
     end
