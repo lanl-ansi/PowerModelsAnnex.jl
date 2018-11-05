@@ -31,7 +31,13 @@ nlp_solver = IpoptSolver(print_level=0)
 # Load System Data
 # ----------------
 
-file_name = "$(Pkg.dir("PowerModels"))/test/data/matpower/case5.m"
+if VERSION < v"0.7.0"
+    powermodels_path = Pkg.dir("PowerModels")
+else
+    powermodels_path = joinpath(dirname(pathof(PowerModels)), "..")
+end
+
+file_name = "$(powermodels_path)/test/data/matpower/case5.m"
 # note: change this string to modify the network data that will be loaded
 
 # load the data file

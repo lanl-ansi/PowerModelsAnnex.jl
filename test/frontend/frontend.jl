@@ -1,3 +1,5 @@
+using Missings
+
 @testset "Costs" begin
     @testset "Polynomial Cost" begin
         pol = PMA.PolynomialCost([0.1, 1, 0.0])

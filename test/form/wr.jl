@@ -4,12 +4,12 @@
         pm = build_generic_model(case_files["case3"], SOCWROAPowerModel, PowerModels.post_opf)
 
         p = var(pm, :p)
-        for k in keys(p)
-            setvalue(p[k[1]], 1.0)
+        for v in values(p)
+            setvalue(v, 1.0)
         end
         q = var(pm, :q)
-        for k in keys(q)
-            setvalue(q[k[1]], 1.0)
+        for v in values(q)
+            setvalue(v, 1.0)
         end
 
         result = solve_generic_model(pm, ipopt_solver)
@@ -21,12 +21,12 @@
         pm = build_generic_model(case_files["case5"], SOCWROAPowerModel, PowerModels.post_opf)
 
         p = var(pm, :p)
-        for k in keys(p)
-            setvalue(p[k[1]], 1.0)
+        for v in values(p)
+            setvalue(v, 1.0)
         end
         q = var(pm, :q)
-        for k in keys(q)
-            setvalue(q[k[1]], 1.0)
+        for v in values(q)
+            setvalue(v, 1.0)
         end
 
         result = solve_generic_model(pm, ipopt_solver)
@@ -39,12 +39,12 @@
         pm = build_generic_model(case_files["case30"], SOCWROAPowerModel, PowerModels.post_opf)
 
         p = var(pm, :p)
-        for k in keys(p)
-            setvalue(p[k[1]], 1.0)
+        for v in values(p)
+            setvalue(v, 1.0)
         end
         q = var(pm, :q)
-        for k in keys(q)
-            setvalue(q[k[1]], 1.0)
+        for v in values(q)
+            setvalue(v, 1.0)
         end
 
         result = solve_generic_model(pm, ipopt_solver)

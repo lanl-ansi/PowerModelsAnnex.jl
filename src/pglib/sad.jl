@@ -6,7 +6,7 @@ function run_sad_opf(file, model_constructor, solver; kwargs...)
 end
 
 ""
-function post_sad_opf{T}(pm::GenericPowerModel{T})
+function post_sad_opf(pm::GenericPowerModel)
     PMs.variable_voltage(pm)
     PMs.variable_generation(pm)
     PMs.variable_branch_flow(pm)

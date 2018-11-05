@@ -12,7 +12,7 @@ const SOCWROAPowerModel = PMs.GenericPowerModel{SOCWROAForm}
 SOCWROAPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, SOCWROAForm; kwargs...)
 
 ""
-function PMs.objective_min_fuel_cost{T <: SOCWROAForm}(pm::GenericPowerModel{T})
+function PMs.objective_min_fuel_cost(pm::GenericPowerModel{T}) where T <: SOCWROAForm
     @assert !InfrastructureModels.ismultinetwork(pm.data)
     @assert !haskey(pm.data, "conductors")
 
@@ -70,13 +70,13 @@ function PMs.constraint_voltage(pm::GenericPowerModel{T}, n::Int, h::Int) where 
     end
 end
 
-function PMs.constraint_thermal_limit_from{T <: SOCWROAForm}(pm::GenericPowerModel{T}, n::Int, h::Int, f_idx, rate_a)
+function PMs.constraint_thermal_limit_from(pm::GenericPowerModel{T}, n::Int, h::Int, f_idx, rate_a) where T <: SOCWROAForm
     p_fr = var(pm, n, h, :p, f_idx)
     q_fr = var(pm, n, h, :q, f_idx)
     @NLconstraint(pm.model, sqrt(p_fr^2 + q_fr^2) <= rate_a)
 end
 
-function PMs.constraint_thermal_limit_to{T <: SOCWROAForm}(pm::GenericPowerModel{T}, n::Int, h::Int, t_idx, rate_a)
+function PMs.constraint_thermal_limit_to(pm::GenericPowerModel{T}, n::Int, h::Int, t_idx, rate_a) where T <: SOCWROAForm
     p_to = var(pm, n, h, :p, t_idx)
     q_to = var(pm, n, h, :q, t_idx)
     @NLconstraint(pm.model, sqrt(p_to^2 + q_to^2) <= rate_a)
