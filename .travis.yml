@@ -15,5 +15,6 @@ addons:
     - gfortran
 before_install:
   - julia -e '(VERSION >= v"0.7" && using Pkg); Pkg.update()'
+  - julia -e '(VERSION >= v"0.7" && using Pkg); Pkg.rm("PowerModelsAnnex"); Pkg.rm("PowerModelsAnnex")'
 after_success:
   - julia -e '(VERSION >= v"0.7" && using Pkg); Pkg.add("Coverage"); cd(Pkg.dir("PowerModelsAnnex")); using Coverage; Codecov.submit(process_folder())'
