@@ -92,7 +92,7 @@ function objective_max_loading_gen_output(pm::GenericPowerModel)
 end
 
 ""
-function bounds_tighten_voltage{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}; epsilon = 0.001)
+function bounds_tighten_voltage(pm::GenericPowerModel{T}; epsilon = 0.001) where T <: PMs.AbstractACPForm
     for (i,bus) in ref(pm, :bus)
         v = var(pm, :vm, i)
         setupperbound(v, bus["vmax"]*(1.0-epsilon))
@@ -111,7 +111,7 @@ function upperbound_negative_active_generation(pm::GenericPowerModel)
 end
 
 ""
-function constraint_kcl_shunt_scaled{T <: PMs.AbstractACPForm}(pm::GenericPowerModel{T}, n::Int, c::Int, i::Int)
+function constraint_kcl_shunt_scaled(pm::GenericPowerModel{T}, n::Int, c::Int, i::Int) where T <: PMs.AbstractACPForm
     bus = ref(pm, n, :bus, i)
     bus_arcs = ref(pm, n, :bus_arcs, i)
     bus_gens = ref(pm, n, :bus_gens, i)

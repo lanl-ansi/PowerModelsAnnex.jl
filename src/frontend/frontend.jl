@@ -1,5 +1,6 @@
 using DataFrames
 using Memento
+using Missings
 using Unitful
 include("units.jl")
 using .Units
@@ -1103,7 +1104,7 @@ function network2pmc(
         coeffs = !ismissing(r[:cost]) ? costcurve2pmc(cost_gen(net)[:coeffs][r[:cost]]) : coeffs
         gen_dict[string(r[:element_id])] = Dict(
             "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["index"],
-            "gen_bus" => (!there || !ismissing(r[:bus])) ? r[:bus] :old["gen_bus"],
+            "gen_bus" => (!there || !ismissing(r[:bus])) ? r[:bus] : old["gen_bus"],
             "pg" => (!there || !ismissing(r[:gen_p])) ? r[:gen_p] : old["pg"],
             "pmax" => (!there || !ismissing(r[:p_max])) ? r[:p_max] : old["pmax"],
             "pmin" => (!there || !ismissing(r[:p_min])) ? r[:p_min] : old["pmin"],
