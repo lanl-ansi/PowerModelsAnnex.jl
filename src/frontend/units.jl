@@ -3,11 +3,15 @@ module Units
 
 using Unitful
 using Missings
-using Base.Dates
+
+import Compat: @__MODULE__
+using Compat.Dates
+
+import Compat.Statistics: mean
 
 export round, mean, asqtype, ustrip, fustrip, UnitfulMissing
 
-import Base: round, mean, *, convert
+import Base: round, *, convert
 import Unitful: @derived_dimension, ustrip, uconvert, Quantity, W, hr, J, 𝐋, 𝐌, 𝐓
 
 UnitfulMissing = Union{<:Unitful.Quantity, Missings.Missing}
@@ -22,16 +26,16 @@ UnitfulMissing = Union{<:Unitful.Quantity, Missings.Missing}
 @refunit USD "USD" Currency Money false
 
 round(x::AbstractArray{<:Quantity}, r::Int) = round(ustrip(x), r) * unit(eltype(x))
-round{T<:Quantity}(x::T, r::Int) = round(ustrip(x), r) * unit(x)
+round(x::T, r::Int) where T <: Quantity = round(ustrip(x), r) * unit(x)
 mean(x::AbstractArray{<:Quantity}, r::Int) = mean(ustrip(x), r) * unit(eltype(x))
-asqtype{T<:Unitful.Units}(x::T) = typeof(1.0*x)
+asqtype(x::T) where T <: Unitful.Units = typeof(1.0*x)
 #ustrip{T<:Unitful.Quantity}(x::DataArrays.DataArray{T}) = map(t -> ustrip(t), x)
 ustrip(x::Missings.Missing) = x
-fustrip{T<:Any}(x::Array{T}) = map(t -> ustrip(t), x)
+fustrip(x::Array{T}) where T = map(t -> ustrip(t), x)
 
-Unitful.register(current_module())
+Unitful.register(@__MODULE__)
 
-*{T<:Unitful.FreeUnits}(y::Missings.Missing, x::T) = y
+*(y::Missings.Missing, x::T) where T <: Unitful.FreeUnits = y
 
 *(x::Unitful.Units, y::Number) = *(y, x)
 
