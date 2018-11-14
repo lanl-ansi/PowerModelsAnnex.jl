@@ -1096,7 +1096,7 @@ function network2pmc(
     to_warn = Int[]
     for r in eachrow(gen(net))
         old = Dict()
-        if string(r[:element_id]) in keys(pmc(net)["gen"])
+        if in(keys(pmc(net)), "gen") && string(r[:element_id]) in keys(pmc(net)["gen"])
             old = pmc(net)["gen"][string(r[:element_id])]
         end
         there = !isempty(old)
@@ -1219,7 +1219,7 @@ function network2pmc(
     branch_dict = Dict()
     for r in eachrow(line(net))
         old = Dict()
-        if string(r[:element_id]) in keys(pmc(net)["branch"])
+        if in(keys(pmc(net)), "branch") && string(r[:element_id]) in keys(pmc(net)["branch"])
             old = pmc(net)["branch"][string(r[:element_id])]
         end
         there = !isempty(old)
@@ -1249,7 +1249,7 @@ function network2pmc(
     bus_dict = Dict()
     for r in eachrow(bus(net))
         old = Dict()
-        if string(r[:element_id]) in keys(pmc(net)["bus"])
+        if in(keys(pmc(net)), "bus") && string(r[:element_id]) in keys(pmc(net)["bus"])
             old = pmc(net)["bus"][string(r[:element_id])]
         end
         there = !isempty(old)
@@ -1271,7 +1271,7 @@ function network2pmc(
     load_dict = Dict()
     for r in eachrow(pi_load(net))
         old = Dict()
-        if string(r[:element_id]) in keys(pmc(net)["load"])
+        if in(keys(pmc(net)), "load") && string(r[:element_id]) in keys(pmc(net)["load"])
             old = pmc(net)["load"][string(r[:element_id])]
         end
         there = !isempty(old)
