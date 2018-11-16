@@ -50,6 +50,6 @@ case_files = Dict(
     include("model/pf.jl")
     include("model/opf.jl")
 
-    #include("frontend/frontend.jl")
+    include("frontend/frontend.jl")
 
 end

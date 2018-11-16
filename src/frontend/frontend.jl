@@ -5,6 +5,8 @@ using Unitful
 include("units.jl")
 using .Units
 
+Unitful.register(Units)
+
 export
     Network,
     add_bus!,
@@ -342,7 +344,7 @@ end
 
 This function annotates the Network structure with physical unit annotations.
 For example, for the load column, it is originally in Float64. This function
-will convert it to a type representing the units "u"MWh"). See Units.jl
+will convert it to a type representing the units u"MWh"). See Units.jl
 for more information. We are assuming energy units as opposed to power units.
 """
 function applyunits!(net::Network)
@@ -874,7 +876,7 @@ function costcurve2pmc(c::PWLCost)
     mw = ustrip(mws(c))
     cost = ustrip(costs(c))
     tmp = hcat(mw, cost)'
-    return vec(tmp)
+    return Vector(vec(tmp))
 end
 costcurve2pmc(c::PolynomialCost) = coefficients(c)
 
