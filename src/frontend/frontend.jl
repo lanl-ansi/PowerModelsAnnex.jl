@@ -876,7 +876,7 @@ function costcurve2pmc(c::PWLCost)
     mw = ustrip(mws(c))
     cost = ustrip(costs(c))
     tmp = hcat(mw, cost)'
-    return vec(tmp)
+    return Vector(vec(tmp))
 end
 costcurve2pmc(c::PolynomialCost) = coefficients(c)
 
