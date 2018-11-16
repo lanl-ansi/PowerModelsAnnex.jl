@@ -1,20 +1,20 @@
 # This will soon become its own package, but is not yet.
+__precompile__(false)
 module Units
 
-using Unitful
+using Compat.Dates
 using Missings
 
-import Compat: @__MODULE__
-using Compat.Dates
-
+import Base: round, *, convert
 import Compat.Statistics: mean
+
+import Unitful
+import Unitful: ustrip, J, W, hr, 𝐋, 𝐌, 𝐓
+using Unitful: @unit, @dimension, @derived_dimension, @refunit, @u_str, uconvert, Quantity
 
 export round, mean, asqtype, ustrip, fustrip, UnitfulMissing
 
-import Base: round, *, convert
-import Unitful: @derived_dimension, ustrip, uconvert, Quantity, W, hr, J, 𝐋, 𝐌, 𝐓
-
-UnitfulMissing = Union{<:Unitful.Quantity, Missings.Missing}
+const UnitfulMissing = Union{<:Unitful.Quantity, Missings.Missing}
 
 @derived_dimension PowerHour 𝐋^2*𝐌*𝐓^-2
 @unit Wh "Wh" WattHour 3600J true
@@ -33,8 +33,6 @@ asqtype(x::T) where T <: Unitful.Units = typeof(1.0*x)
 ustrip(x::Missings.Missing) = x
 fustrip(x::Array{T}) where T = map(t -> ustrip(t), x)
 
-Unitful.register(@__MODULE__)
-
 *(y::Missings.Missing, x::T) where T <: Unitful.FreeUnits = y
 
 *(x::Unitful.Units, y::Number) = *(y, x)
@@ -51,12 +49,15 @@ end
 # Exist to test that (offsets)u"hr" should work the same way
 dt2umin(t::AbstractArray{Dates.Minute}) = Dates.value.(t).*u"minute"
 
+# Re enable pre-compilation when this becomes its own package
 # Some gymnastics needed to get this to work at run-time.
 # Sourced from https://github.com/ajkeller34/UnitfulUS.jl
-const localunits = Unitful.basefactors
-function __init__()
-    merge!(Unitful.basefactors, localunits)
-    Unitful.register(Units)
-end
+# const localunits = Unitful.basefactors
+# const localpromotion = Unitful.promotion
+# function __init__()
+#     merge!(Unitful.basefactors, localunits)
+#     merge!(Unitful.promotion, localpromotion) # only if you've used @dimension
+#     Unitful.register(Units)
+# end
 
 end
