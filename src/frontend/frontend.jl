@@ -2,10 +2,9 @@ using DataFrames
 using Memento
 using Missings
 using Unitful
-include("units.jl")
-using .Units
+using PowerSystemsUnits
 
-Unitful.register(Units)
+Unitful.register(PowerSystemsUnits)
 
 export
     Network,
@@ -344,7 +343,7 @@ end
 
 This function annotates the Network structure with physical unit annotations.
 For example, for the load column, it is originally in Float64. This function
-will convert it to a type representing the units u"MWh"). See Units.jl
+will convert it to a type representing the units u"MWh"). See PowerSystemsUnits.jl
 for more information. We are assuming energy units as opposed to power units.
 """
 function applyunits!(net::Network)
@@ -823,17 +822,17 @@ Units are explicitly given.
 Make the dimensions and units parameters of the type.
 """
 struct PWLCost <: CostCurve
-    mw::AbstractVector{<:Units.PowerHour}
-    cost::AbstractVector{<:Units.Currency}
+    mw::AbstractVector{<:PowerSystemsUnits.PowerHour}
+    cost::AbstractVector{<:PowerSystemsUnits.Currency}
 # Inner constructor contains some built-in checks
     function PWLCost(;
-        mw::AbstractVector{<:Units.PowerHour}=Units.PowerHour[],
-        cost::AbstractVector{<:Units.Currency}=Units.Currency[],
+        mw::AbstractVector{<:PowerSystemsUnits.PowerHour}=PowerSystemsUnits.PowerHour[],
+        cost::AbstractVector{<:PowerSystemsUnits.Currency}=PowerSystemsUnits.Currency[],
     )
         if length(mw) != length(cost)
             error(LOGGER, "Malformed cost curve. Please check.")
         else
-            if (eltype(mw) == asqtype(u"MW*hr")) && (eltype(cost) <: Units.Currency)
+            if (eltype(mw) == asqtype(u"MW*hr")) && (eltype(cost) <: PowerSystemsUnits.Currency)
                 if is_convex(mw, cost)
                     return new(mw, cost)
                 else

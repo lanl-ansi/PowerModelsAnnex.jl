@@ -1,6 +1,5 @@
 using PowerModelsAnnex
 using Unitful
-#using PowerModelsAnnex.Units
 PMA = PowerModelsAnnex
 
 using JuMP
