@@ -1285,6 +1285,9 @@ function network2pmc(
         )
     end
     outnet["load"] = load_dict
+    # Add extra keys that `Network` does not have. These are simply placeholders
+    outnet["shunt"] = Dict{String,Any}()
+    outnet["storage"] = Dict{String,Any}()
     return outnet
 end
 

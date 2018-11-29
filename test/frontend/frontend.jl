@@ -113,7 +113,9 @@ end
     @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
     pm = PMA.network2pmc(net)
     @test isa(pm, Dict)
-    @test "branch" in keys(pm)
+    for k in ["branch", "gen", "load", "shunt", "storage", "bus"]
+        @test k in keys(pm)
+    end
     PMA.applyunits!(net)
     @test isa(net.pi_load[:load_p], Array{Union{<:Unitful.Quantity, Missings.Missing}})
     PMA.stripunits!(net)
