@@ -361,10 +361,10 @@ function applyunits!(net::Network)
     net.gen[:ramp] = Array{UnitfulMissing}(net.gen[:ramp]*u"MWh/minute")
     net.bus[:base_kv] = Array{UnitfulMissing}(net.bus[:base_kv]*u"kV")
     #TODO: add cost units
-    net.line[:p_to] = Array{UnitfulMissing}(net.line[:p_to]*u"MWh")
-    net.line[:p_from] = Array{UnitfulMissing}(net.line[:rate_a]*u"MWh")
-    net.line[:q_to] = Array{UnitfulMissing}(net.line[:rate_a]*u"MVARh")
-    net.line[:q_from] = Array{UnitfulMissing}(net.line[:rate_a]*u"MVARh")
+    net.line[:b_to] = Array{UnitfulMissing}(net.line[:b_to]*u"MWh") # TODO: Check these units!
+    net.line[:b_fr] = Array{UnitfulMissing}(net.line[:b_fr]*u"MWh")
+    net.line[:g_to] = Array{UnitfulMissing}(net.line[:g_to]*u"MVARh")
+    net.line[:g_fr] = Array{UnitfulMissing}(net.line[:g_fr]*u"MVARh")
     net.line[:rate_a] = Array{UnitfulMissing}(net.line[:rate_a]*u"A")
     net.line[:rate_b] = Array{UnitfulMissing}(net.line[:rate_b]*u"A")
     net.line[:rate_c] = Array{UnitfulMissing}(net.line[:rate_c]*u"A")
@@ -1055,6 +1055,7 @@ function add_cost_load!(
 end
 
 include("network2pmc.jl")
+
 
 ### Getters ###
 bus(net::Network) = net.bus
