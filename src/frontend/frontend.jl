@@ -140,10 +140,10 @@ const ps_load_columns = Dict( # This is meant for our use, not for importing pow
 :susceptance -> line susceptance
 :ang_min -> minimum voltage angle difference
 :ang_max -> maximum voltage angle difference
-:g_to ->
-:g_fr ->
-:b_to ->
-:b_fr ->
+:g_to -> line conductance (to-node)
+:g_fr -> line conductance (from-node)
+:b_to -> line charging susceptance (to-node)
+:b_fr -> line charging susceptance (from-node)
 """
 const line_columns = Dict(
     :element_id => :index,
@@ -361,10 +361,10 @@ function applyunits!(net::Network)
     net.gen[:ramp] = Array{UnitfulMissing}(net.gen[:ramp]*u"MWh/minute")
     net.bus[:base_kv] = Array{UnitfulMissing}(net.bus[:base_kv]*u"kV")
     #TODO: add cost units
-    net.line[:b_to] = Array{UnitfulMissing}(net.line[:b_to]*u"MWh") # TODO: Check these units!
-    net.line[:b_fr] = Array{UnitfulMissing}(net.line[:b_fr]*u"MWh")
-    net.line[:g_to] = Array{UnitfulMissing}(net.line[:g_to]*u"MVARh")
-    net.line[:g_fr] = Array{UnitfulMissing}(net.line[:g_fr]*u"MVARh")
+    net.line[:b_to] = Array{UnitfulMissing}(net.line[:b_to]*u"S")
+    net.line[:b_fr] = Array{UnitfulMissing}(net.line[:b_fr]*u"S")
+    net.line[:g_to] = Array{UnitfulMissing}(net.line[:g_to]*u"S")
+    net.line[:g_fr] = Array{UnitfulMissing}(net.line[:g_fr]*u"S")
     net.line[:rate_a] = Array{UnitfulMissing}(net.line[:rate_a]*u"A")
     net.line[:rate_b] = Array{UnitfulMissing}(net.line[:rate_b]*u"A")
     net.line[:rate_c] = Array{UnitfulMissing}(net.line[:rate_c]*u"A")
