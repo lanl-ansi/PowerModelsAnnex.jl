@@ -140,10 +140,10 @@ const ps_load_columns = Dict( # This is meant for our use, not for importing pow
 :susceptance -> line susceptance
 :ang_min -> minimum voltage angle difference
 :ang_max -> maximum voltage angle difference
-:q_to -> Reactive power reaching `to_bus`
-:q_from -> Reactive power leaving `from_bus`
-:p_to -> Real power reaching `to_bus`
-:p_from -> Real power leaving `from_bus`
+:g_to -> line conductance (to-node)
+:g_fr -> line conductance (from-node)
+:b_to -> line charging susceptance (to-node)
+:b_fr -> line charging susceptance (from-node)
 """
 const line_columns = Dict(
     :element_id => :index,
@@ -159,10 +159,10 @@ const line_columns = Dict(
     :susceptance => :br_b,
     :ang_min => :angmin,
     :ang_max => :angmax,
-    :q_to => :q_to,
-    :q_from => :q_fr,
-    :p_to => :p_to,
-    :p_from => :p_from,
+    :g_to => :g_to,
+    :g_fr => :g_fr,
+    :b_to => :b_to,
+    :b_fr => :b_fr,
 )
 
 """
@@ -361,10 +361,10 @@ function applyunits!(net::Network)
     net.gen[:ramp] = Array{UnitfulMissing}(net.gen[:ramp]*u"MWh/minute")
     net.bus[:base_kv] = Array{UnitfulMissing}(net.bus[:base_kv]*u"kV")
     #TODO: add cost units
-    net.line[:p_to] = Array{UnitfulMissing}(net.line[:p_to]*u"MWh")
-    net.line[:p_from] = Array{UnitfulMissing}(net.line[:rate_a]*u"MWh")
-    net.line[:q_to] = Array{UnitfulMissing}(net.line[:rate_a]*u"MVARh")
-    net.line[:q_from] = Array{UnitfulMissing}(net.line[:rate_a]*u"MVARh")
+    net.line[:b_to] = Array{UnitfulMissing}(net.line[:b_to]*u"S")
+    net.line[:b_fr] = Array{UnitfulMissing}(net.line[:b_fr]*u"S")
+    net.line[:g_to] = Array{UnitfulMissing}(net.line[:g_to]*u"S")
+    net.line[:g_fr] = Array{UnitfulMissing}(net.line[:g_fr]*u"S")
     net.line[:rate_a] = Array{UnitfulMissing}(net.line[:rate_a]*u"A")
     net.line[:rate_b] = Array{UnitfulMissing}(net.line[:rate_b]*u"A")
     net.line[:rate_c] = Array{UnitfulMissing}(net.line[:rate_c]*u"A")
@@ -373,46 +373,30 @@ function applyunits!(net::Network)
     net.line[:susceptance] = Array{UnitfulMissing}(net.line[:susceptance]*u"S")
 end
 
+function _stripunits!(elements::DataFrame, columns::AbstractVector{<:Symbol})
+    for col in columns
+        elements[col] = Array{Union{Missings.Missing,Float64}}(fustrip(elements[col]))
+    end
+end
+
 function stripunits!(net::Network)
     # Incomplete method to be extended as we annotate units
-    net.pi_load[:load_p] = Array{Union{Missings.Missing,Float64}}(
-        fustrip(net.pi_load[:load_p])
-    )
-    net.pi_load[:load_q] = Array{Union{Missings.Missing,Float64}}(
-        fustrip(net.pi_load[:load_q])
-    )
-    net.ps_load[:load] = Array{Union{Missings.Missing,Float64}}(fustrip(net.ps_load[:load]))
-    net.ps_load[:load_max] = Array{Union{Missings.Missing,Float64}}(
-        fustrip(net.ps_load[:load_max])
-    )
-    net.gen[:gen_p] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:gen_p]))
-    net.gen[:p_max] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:p_max]))
-    net.gen[:p_min] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:p_min]))
-    net.gen[:gen_q] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:gen_q]))
-    net.gen[:q_max] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:q_max]))
-    net.gen[:q_min] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:q_min]))
-    net.gen[:startup_cost] = Array{Union{Missings.Missing,Float64}}(
-        fustrip(net.gen[:startup_cost])
-    )
-    net.gen[:ramp] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[:ramp]))
+    for k in [:load_p, :load_q]
+        net.pi_load[k] = Array{Union{Missings.Missing,Float64}}(
+            fustrip(net.pi_load[k])
+        )
+    end
+    for k in [:load, :load_max]
+        net.ps_load[k] = Array{Union{Missings.Missing,Float64}}(fustrip(net.ps_load[k]))
+    end
+    for col in [:gen_p, :p_max, :p_min, :gen_q, :q_max, :q_min, :startup_cost, :ramp]
+        net.gen[col] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[col]))
+    end
     net.bus[:base_kv] = Array{Union{Missings.Missing,Float64}}(fustrip(net.bus[:base_kv]))
     #TODO: strip cost units
-    net.line[:p_to] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:p_to]))
-    net.line[:p_fr] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:p_from]))
-    net.line[:q_to] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:q_to]))
-    net.line[:q_from] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:q_from]))
-    net.line[:rate_a] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:rate_a]))
-    net.line[:rate_b] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:rate_b]))
-    net.line[:rate_c] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[:rate_c]))
-    net.line[:resistance] = Array{Union{Missings.Missing,Float64}}(
-        fustrip(net.line[:resistance])
-    )
-    net.line[:reactance] = Array{Union{Missings.Missing,Float64}}(
-        fustrip(net.line[:reactance])
-    )
-    net.line[:susceptance] = Array{Union{Missings.Missing,Float64}}(
-        fustrip(net.line[:susceptance])
-    )
+    for col in [:b_to, :b_fr, :g_to, :g_fr, :rate_a, :rate_b, :rate_c, :resistance, :reactance, :susceptance]
+        net.line[col] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[col]))
+    end
 end
 
 function matpower2pmc(path::AbstractString)
@@ -1070,241 +1054,8 @@ function add_cost_load!(
     end
 end
 
-"""
-    network2pmc(net::Network)
+include("network2pmc.jl")
 
-Return a PowerModels network model (dictionary) based on the information contained within
-a Network `net`.
-"""
-function network2pmc(
-    net::Network;
-    per_unit::Bool=true,
-    name::AbstractString="pmc",
-    baseMVA::Int=100,
-    multinetwork::Bool=false,
-    version::Int=2,
-)
-    outnet = Dict(
-        "per_unit" => per_unit, # We may want to check if it is ok to use a deafult here.
-        "name" => name,
-        "baseMVA" => baseMVA, # We likely don't want a default value here.
-        "multinetwork" => multinetwork,
-        "version" => version,
-        "dcline" => Dict() # We don't use this.
-    )
-    stripunits!(net)
-    gen_dict = Dict()
-    to_warn = Int[]
-    for r in eachrow(gen(net))
-        old = Dict()
-        if in(keys(pmc(net)), "gen") && string(r[:element_id]) in keys(pmc(net)["gen"])
-            old = pmc(net)["gen"][string(r[:element_id])]
-        end
-        there = !isempty(old)
-        coeffs = there ? old["cost"] : [0.0]
-        coeffs = !ismissing(r[:cost]) ? costcurve2pmc(cost_gen(net)[:coeffs][r[:cost]]) : coeffs
-        gen_dict[string(r[:element_id])] = Dict(
-            "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["index"],
-            "gen_bus" => (!there || !ismissing(r[:bus])) ? r[:bus] : old["gen_bus"],
-            "pg" => (!there || !ismissing(r[:gen_p])) ? r[:gen_p] : old["pg"],
-            "pmax" => (!there || !ismissing(r[:p_max])) ? r[:p_max] : old["pmax"],
-            "pmin" => (!there || !ismissing(r[:p_min])) ? r[:p_min] : old["pmin"],
-            "qg" => (!there || !ismissing(r[:gen_q])) ? r[:gen_q] : old["qg"],
-            "qmax" => (!there || !ismissing(r[:q_max])) ? r[:q_max] : old["qmax"],
-            "qmin" => (!there || !ismissing(r[:q_min])) ? r[:q_min] : old["qmin"],
-            "startup" => (!there || !ismissing(r[:startup_cost])) ? r[:startup_cost] : old["startup"],
-            "gen_status" => (!there || !ismissing(r[:status])) ? r[:status] : old["gen_status"],
-            "ramp_10" => (!there || !ismissing(r[:ramp])) ? r[:ramp] : old["ramp_10"],
-            "cost" => (!there || !ismissing(r[:cost]) ) ? coeffs : old["cost"], # Default or old value
-            "model" => !there  ? -1 : old["model"], # Default or old value
-            "ncost" => !there  ? 0 : old["ncost"], # Default or old value
-            "qc1max" => 0.0,
-            "qc2max" => 0.0,
-            "mbase" => baseMVA,
-            "pc2" => 0.0,
-            "pc1" => 0.0,
-            "ramp_q" => 0.0,
-            "ramp_30" => 0.0,
-            "apf" => 0.0,
-            "shutdown" => 0.0,
-            "ramp_agc" => 0.0,
-            "vg" => 1.01,
-            "qc1min" => 0.0,
-            "qc2min" => 0.0,
-        )
-        if !there && isa(coeffs, PolynomialCost)
-            gen_dict["cost"] = coefficients(coeffs)
-            gen_dict["model"] = 2
-            gen_dict["ncost"] = n_cost(coeffs)
-        elseif !there && isa(coeffs, PWLCost)
-            mw_pts = ustrip.(mws(coeffs))
-            cost_pts = ustrip.(costs(coeffs))
-            mix = vec(hcat(mw_pts, cost_pts)') # This is the format used by MATPOWER and PowerModels
-            gen_dict["cost"] = mix
-            gen_dict["model"] = 1
-            gen_dict["ncost"] = length(mw_pts)
-        else
-            push!(to_warn, r[:element_id])
-        end
-    end
-    if !isempty(to_warn)
-        warn(LOGGER, "Using default costs for generator cost ids $to_warn")
-    end
-    # Here we also need to add the price sensitive loads as generators
-    last_gen = maximum(gen(net)[:element_id])
-    to_warn = Int[]
-    for r in eachrow(ps_load(net))
-        old = Dict()
-        if string(r[:element_id]) in keys(pmc(net)["gen"])
-            old = pmc(net)["gen"][string(r[:element_id])]
-        end
-        there = !isempty(old)
-        coeffs = there ? old["cost"] : [0.0]
-        coeffs = !ismissing(r[:cost]) ? cost_load(net)[:coeffs][r[:cost]] : coeffs
-        gen_dict[string(r[:element_id] + last_gen)] = Dict(
-            "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] + last_gen : old["index"],
-            "gen_bus" => (!there || !ismissing(r[:bus])) ? r[:bus] : old["gen_bus"],
-            "pmax" => (!there || !ismissing(r[:load_max])) ? r[:load_max] : old["pmax"],
-            "cost" => (!there || !ismissing(r[:cost]) ) ? costcurve2pmc(cost_load(net)[:coeffs][r[:cost]]) : old["cost"], # Default or old value
-            "model" => !there  ? -1 : old["model"], # Default or old value
-            "ncost" => !there  ? 0 : old["ncost"], # Default or old value
-            "gen_status" => (!there || !ismissing(r[:status])) ? r[:status] : old["gen_status"],
-            "ramp_10" => 0.0,
-            "startup" => 0.0,
-            "qg" => 0.0,
-            "qmax" => 0.0,
-            "qmin" => 0.0,
-            "pmin" => 0.0,
-            "qc1max" => 0.0,
-            "model" => 2,
-            "qc2max" => 0.0,
-            "mbase" => baseMVA,
-            "pc2" => 0.0,
-            "pc1" => 0.0,
-            "ramp_q" => 0.0,
-            "ramp_30" => 0.0,
-            "apf" => 0.0,
-            "shutdown" => 0.0,
-            "ramp_agc" => 0.0,
-            "vg" => 1.01,
-            "qc1min" => 0.0,
-            "qc2min" => 0.0,
-        )
-        # TODO: Check the signs of ps load costs
-        if !there && isa(coeffs, PolynomialCost)
-            # Load is negative generation. By serving load, the total cost receives a negative contribution
-            # due to the amount payed by the utility.
-            gen_dict["cost"] = -coefficients(coeffs) # The cost curve has to be flipped along the x axis.
-            aux = gen_dict["pmin"]
-            gen_dict["pmin"] = -gen_dict["pmax"] # The cost curve has to be flipped along the y axis.
-            gen_dict["pmax"] = -aux
-            gen_dict["model"] = 2
-            gen_dict["ncost"] = n_cost(coeffs)
-        elseif !there && isa(coeffs, PWLCost)
-            mw_pts = -ustrip.(mws(coeffs)) # The mws have to be flipped.
-            cost_pts = -ustrip.(costs(coeffs)) # The cost has to be flipped too. It's a cost for the utility, profit for generators.
-            mix = vec(hcat(mw_pts, cost_pts)') # This is the format used by MATPOWER and PowerModels
-            gen_dict["cost"] = mix
-            gen_dict["model"] = 1
-            gen_dict["ncost"] = length(mw_pts)
-            gen_dict["pmin"] = -gen_dict["pmax"] # The cost curve has to be flipped along the y axis. Load is negative generation
-            gen_dict["pmax"] = 0.0
-        else
-            push!(to_warn, r[:element_id])
-        end
-    end
-    if !isempty(to_warn)
-        warn(LOGGER, "Used default costs for ps load cost ids $to_warn.")
-    end
-    outnet["gen"] = gen_dict
-    branch_dict = Dict()
-    for r in eachrow(line(net))
-        old = Dict()
-        if in(keys(pmc(net)), "branch") && string(r[:element_id]) in keys(pmc(net)["branch"])
-            old = pmc(net)["branch"][string(r[:element_id])]
-        end
-        there = !isempty(old)
-        branch_dict[string(r[:element_id])] = Dict(
-            "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["index"],
-            "br_r" => (!there || !ismissing(r[:element_id])) ? r[:resistance] : old["br_r"],
-            "rate_a" => (!there || !ismissing(r[:element_id])) ? r[:rate_a] : old["rate_a"],
-            "rate_b" => (!there || !ismissing(r[:element_id])) ? r[:rate_b] : old["rate_b"],
-            "rate_c" => (!there || !ismissing(r[:element_id])) ? r[:rate_c] : old["rate_c"],
-            "transformer" => (!there || !ismissing(r[:element_id])) ? r[:transformer] : old["transformer"],
-            "f_bus" => (!there || !ismissing(r[:element_id])) ? r[:from_bus] : old["f_bus"],
-            "t_bus" => (!there || !ismissing(r[:element_id])) ? r[:to_bus] : old["t_bus"],
-            "br_status" => (!there || !ismissing(r[:element_id])) ? r[:status] : old["br_status"],
-            "br_x" => (!there || !ismissing(r[:element_id])) ? r[:reactance] : old["br_x"],
-            "br_b" => (!there || !ismissing(r[:element_id])) ? r[:susceptance] : old["br_b"],
-            "angmin" => (!there || !ismissing(r[:element_id])) ? r[:ang_min] : old["angmin"],
-            "angmax" => (!there || !ismissing(r[:element_id])) ? r[:ang_max] : old["angmax"],
-            "b_to" => (!there || !ismissing(r[:element_id])) ? r[:p_to] : old["b_to"],
-            "b_fr" => (!there || !ismissing(r[:element_id])) ? r[:p_from] : old["b_fr"],
-            "g_to" => (!there || !ismissing(r[:element_id])) ? r[:q_to] : old["g_to"],
-            "g_fr" => (!there || !ismissing(r[:element_id])) ? r[:q_from] : old["g_fr"],
-            "shift" => 0.0,
-            "tap" => 1.0,
-        )
-    end
-    outnet["branch"] = branch_dict
-    bus_dict = Dict()
-    for r in eachrow(bus(net))
-        old = Dict()
-        if in(keys(pmc(net)), "bus") && string(r[:element_id]) in keys(pmc(net)["bus"])
-            old = pmc(net)["bus"][string(r[:element_id])]
-        end
-        there = !isempty(old)
-        bus_dict[string(r[:element_id])] = Dict(
-            "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["index"],
-            "bus_name" => (!there || !ismissing(r[:element_id])) ? r[:name] : old["bus_name"],
-            "vm" => (!there || !ismissing(r[:element_id])) ? r[:voltage] : old["vm"],
-            "vmax" => (!there || !ismissing(r[:element_id])) ? r[:volt_max] : old["vmax"],
-            "vmin" => (!there || !ismissing(r[:element_id])) ? r[:volt_min] : old["vmin"],
-            "bus_type" => (!there || !ismissing(r[:element_id])) ? r[:bus_type] : old["bus_type"],
-            "base_kv" => (!there || !ismissing(r[:element_id])) ? r[:base_kv] : old["base_kv"],
-            "zone" => (!there || !ismissing(r[:element_id])) ? r[:zone] : old["zone"],
-            "bus_i" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["bus_i"],
-            "area" => (!there || !ismissing(r[:element_id])) ? r[:area] : old["area"],
-            "va" => 0.0,
-        )
-    end
-    outnet["bus"] = bus_dict
-    load_dict = Dict()
-    for r in eachrow(pi_load(net))
-        old = Dict()
-        if in(keys(pmc(net)), "load") && string(r[:element_id]) in keys(pmc(net)["load"])
-            old = pmc(net)["load"][string(r[:element_id])]
-        end
-        there = !isempty(old)
-        load_dict[string(r[:element_id])] = Dict(
-            "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["index"],
-            "load_bus" => (!there || !ismissing(r[:element_id])) ? r[:bus] : old["load_bus"],
-            "qd" => (!there || !ismissing(r[:element_id])) ? r[:load_q] : old["qd"],
-            "pd" => (!there || !ismissing(r[:element_id])) ? r[:load_p] : old["pd"],
-            "status" => (!there || !ismissing(r[:element_id])) ? r[:status] : old["status"],
-        )
-    end
-    outnet["load"] = load_dict
-    # Add extra keys that `Network` does not have. These are simply placeholders
-    outnet["shunt"] = Dict{String,Any}()
-    outnet["storage"] = Dict{String,Any}()
-    return outnet
-end
-
-"""
-    build_pmc!(net::Network)
-
-Read information contained in `net` and uses it to populate `net.pmc`. This will overwrite
-any information previously contained in there.
-"""
-function build_pmc!(net::Network)
-    updated = network2pmc(net)
-    for k in keys(updated)
-        net.pmc[k] = updated[k]
-    end
-    #PowerModels.check_network_data(updated) # Small problem, it's the cause of
-    # extreme verbosity.
-end
 
 ### Getters ###
 bus(net::Network) = net.bus
