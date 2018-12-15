@@ -166,6 +166,6 @@ end
 ""
 function add_load_demand_setpoint(sol, pm::GenericPowerModel)
     mva_base = pm.data["baseMVA"]
-    PMs.add_setpoint(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item) -> item["pd"] > 0 && item["qd"] > 0 ? x*item["pd"] : item["pd"], extract_var = (var,idx,item) -> var)
-    PMs.add_setpoint(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item) -> item["qd"], extract_var = (var,idx,item) -> var)
+    PMs.add_setpoint(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], extract_var = (var,idx,item) -> var)
+    PMs.add_setpoint(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], extract_var = (var,idx,item) -> var)
 end

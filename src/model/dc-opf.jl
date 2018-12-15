@@ -43,6 +43,10 @@ file_name = "$(powermodels_path)/test/data/matpower/case5.m"
 # load the data file
 data = PowerModels.parse_file(file_name)
 
+# Add zeros to turn linear objective functions into quadratic ones
+# so that additional parameter checks are not required
+PowerModels.standardize_cost_terms(data, order=2)
+
 # use build_ref to filter out inactive components
 ref = PowerModels.build_ref(data)[:nw][0]
 # Note: ref contains all the relevant system parameters needed to build the OPF model

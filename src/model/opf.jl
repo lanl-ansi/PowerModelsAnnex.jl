@@ -8,6 +8,7 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
+    PowerModels.standardize_cost_terms(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
@@ -113,6 +114,7 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
+    PowerModels.standardize_cost_terms(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
@@ -243,6 +245,7 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
+    PowerModels.standardize_cost_terms(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
     # voltage angle and magnitude
@@ -565,6 +568,7 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
+    PowerModels.standardize_cost_terms(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
