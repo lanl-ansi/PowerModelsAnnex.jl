@@ -1,6 +1,9 @@
 using PowerModelsAnnex
 using Unitful
+using PowerSystemsUnits
 PMA = PowerModelsAnnex
+
+Unitful.register(PowerSystemsUnits)
 
 using JuMP
 using PowerModels
