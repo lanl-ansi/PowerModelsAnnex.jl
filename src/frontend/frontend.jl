@@ -294,9 +294,9 @@ function Network(pmc::Dict)
                 error(LOGGER, "The type selected (PWL) and the cost data are incompatible")
             end
             tmp_ncost = length(row) / 2
-            idx = range(1, tmp_ncost)
-            mws = row[2 * idx - 1] #* u"MW*hr"
-            costs = row[2 * idx] #* u"USD"
+            idx = range(1, Int(tmp_ncost))
+            mws = row[2 * idx - 1] * u"MWh"
+            costs = row[2 * idx] * u"USDPerMWh"
             aux[k]["cost"] = PWLCost(mw=mws, cost=costs)
             aux[k]["ncost"] = tmp_ncost
         elseif aux[k]["model"] == 2
@@ -807,16 +807,16 @@ Make the dimensions and units parameters of the type.
 """
 struct PWLCost <: CostCurve
     mw::AbstractVector{<:PowerSystemsUnits.PowerHour}
-    cost::AbstractVector{<:PowerSystemsUnits.Currency}
+    cost::AbstractVector{<:PowerSystemsUnits.MoneyPerPowerHour}
 # Inner constructor contains some built-in checks
     function PWLCost(;
         mw::AbstractVector{<:PowerSystemsUnits.PowerHour}=PowerSystemsUnits.PowerHour[],
-        cost::AbstractVector{<:PowerSystemsUnits.Currency}=PowerSystemsUnits.Currency[],
+        cost::AbstractVector{<:PowerSystemsUnits.MoneyPerPowerHour}=PowerSystemsUnits.MoneyPerPowerHour[],
     )
         if length(mw) != length(cost)
             error(LOGGER, "Malformed cost curve. Please check.")
         else
-            if (eltype(mw) == asqtype(u"MW*hr")) && (eltype(cost) <: PowerSystemsUnits.Currency)
+            if (eltype(mw) == asqtype(u"MWh")) && (eltype(cost) == asqtype(u"USDPerMWh"))
                 if is_convex(mw, cost)
                     return new(mw, cost)
                 else
@@ -842,9 +842,9 @@ the slopes of the linear function for each block.
 function prices(pwl_cost::PWLCost)
     out = []
     mw = mws(pwl_cost)
-    usd = costs(pwl_cost)
+    usdpermw = costs(pwl_cost)
     for i in 1:n_segments(pwl_cost)
-        push!(out, (usd[i+1] - usd[i])/(mw[i+1] - mw[i]))
+        push!(out, (usdpermw[i+1] - usdpermw[i])/(mw[i+1] - mw[i]))
     end
     return out
 end
