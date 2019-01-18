@@ -12,8 +12,8 @@ using Missings
         @test PMA.is_convex(mw, cost)
     end
     @testset "PWL Cost" begin
-        cost = Float64[0, 1, 3, 6] * 1u"USD"
-        mw = Float64[0, 1, 2, 3] * 1u"MW*hr"
+        cost = Float64[0, 1, 3, 6] * 1u"USDPerMWh"
+        mw = Float64[0, 1, 2, 3] * 1u"MWh"
         pwl_cost = PMA.PWLCost(mw=mw, cost=cost)
         @test PMA.n_segments(pwl_cost) == 3
         @test PMA.costs(pwl_cost) == cost
@@ -22,8 +22,8 @@ using Missings
     end
 
     @testset "Conversion to PMC/MATPOWER" begin
-        cost = Float64[0, 1, 3, 6] * 1u"USD"
-        mw = Float64[0, 1, 2, 3] * 1u"MW*hr"
+        cost = Float64[0, 1, 3, 6] * 1u"USDPerMWh"
+        mw = Float64[0, 1, 2, 3] * 1u"MWh"
         pwl_cost = PMA.PWLCost(mw=mw, cost=cost)
         cc_pmc = PMA.costcurve2pmc(pwl_cost)
         @test isa(cc_pmc, Vector{Float64})
@@ -45,8 +45,8 @@ end
         add_pi_load!(net)
         add_load!(net)
         add_line!(net)
-        example_pwl_cost = PMA.PWLCost(mw=[0, 1, 2] * 1.0u"MW*hr", cost=[0, 10, 20] * 1.0u"USD")
-        ex_pwl_cost_2 = PMA.PWLCost(mw=[0, 2, 3] * 1.0u"MW*hr", cost=[0, 10, 20] * 1.0u"USD")
+        example_pwl_cost = PMA.PWLCost(mw=[0, 1, 2] * 1.0u"MWh", cost=[0, 10, 20] * 1.0u"USDPerMWh")
+        ex_pwl_cost_2 = PMA.PWLCost(mw=[0, 2, 3] * 1.0u"MWh", cost=[0, 10, 20] * 1.0u"USDPerMWh")
         add_cost_gen!(net, example_pwl_cost)
         add_cost_load!(net, ex_pwl_cost_2)
         @test size(PMA.lines(net))[1] == 21
