@@ -5,30 +5,24 @@ PMA = PowerModelsAnnex
 
 Unitful.register(PowerSystemsUnits)
 
-using JuMP
-using PowerModels
+import JuMP
+import PowerModels
 PMs = PowerModels
 
-using InfrastructureModels
+import InfrastructureModels
 
-using Ipopt
+import Ipopt
 
-using Memento
-setlevel!(getlogger(InfrastructureModels), "error")
-setlevel!(getlogger(PowerModels), "error")
+import Memento
+Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
+Memento.setlevel!(Memento.getlogger(PowerModels), "error")
 
-using Compat.Test
+using Test
 
-if VERSION < v"0.7.0-"
-    pms_path = Pkg.dir("PowerModels")
-end
-
-if VERSION > v"0.7.0-"
-    pms_path = joinpath(dirname(pathof(PowerModels)), "..")
-end
+pms_path = joinpath(dirname(pathof(PowerModels)), "..")
 
 # default setup for solvers
-ipopt_solver = IpoptSolver(tol=1e-6, print_level=0)
+ipopt_solver = Ipopt.IpoptSolver(tol=1e-6, print_level=0)
 
 # this will work because PowerModels is a dependency
 case_files = Dict(

@@ -1,12 +1,11 @@
 module PowerModelsAnnex
 
-using Compat
-using JuMP
-using InfrastructureModels
-using PowerModels
-using Memento
+import JuMP
+import InfrastructureModels
+import PowerModels
+import Memento
 
-const LOGGER = getlogger(PowerModels)
+const LOGGER = Memento.getlogger(PowerModels)
 
 const PMs = PowerModels
 
