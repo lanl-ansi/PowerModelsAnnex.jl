@@ -11,7 +11,7 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
     ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
-    @variable(model, vm[i in keys(ref[:bus])] >= 0, start=1.0)
+    @variable(model, vm[i in keys(ref[:bus])], start=1.0)
 
     @variable(model, pg[i in keys(ref[:gen])])
     @variable(model, qg[i in keys(ref[:gen])])
