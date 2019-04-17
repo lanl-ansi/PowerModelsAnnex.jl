@@ -24,7 +24,7 @@ import JuMP
 # Instancate a Solver
 #--------------------
 
-nlp_solver = Ipopt.IpoptSolver(print_level=0)
+nlp_solver = JuMP.with_optimizer(Ipopt.Optimizer, print_level=0)
 # note: print_level changes the amount of solver information printed to the terminal
 
 
@@ -161,14 +161,14 @@ end
 ###############################################################################
 
 # Solve the optimization problem
-status = JuMP.solve(model)
+status = JuMP.optimize(model)
 
 # Check the value of the objective function
-cost = JuMP.getobjectivevalue(model)
+cost = JuMP.objective_value(model)
 println("The cost of generation is $(cost).")
 
 # Check the value of an optimization variable
 # Example: Active power generated at generator 1
-pg1 = JuMP.getvalue(pg[1])
+pg1 = JuMP.value(pg[1])
 println("The active power generated at generator 1 is $(pg1*ref[:baseMVA]) MW.")
 # note: the optimization model is in per unit, so the baseMVA value is used to restore the physical units
