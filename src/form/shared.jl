@@ -1,7 +1,7 @@
 NLForms = Union{NLSOCWROAForm, NLACRForm}
 
 ""
-function PMs._objective_min_polynomial_fuel_cost_linear(pm::GenericPowerModel{T}) where T <: NLForms
+function PMs._objective_min_polynomial_fuel_cost_linear(pm::PMs.GenericPowerModel{T}) where T <: NLForms
     from_idx = Dict()
     for (n, nw_ref) in nws(pm)
         from_idx[n] = Dict(arc[1] => arc for arc in nw_ref[:arcs_from_dc])
@@ -28,7 +28,7 @@ function PMs._objective_min_polynomial_fuel_cost_linear(pm::GenericPowerModel{T}
 end
 
 ""
-function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::GenericPowerModel{T}) where T <: NLForms
+function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerModel{T}) where T <: NLForms
     from_idx = Dict()
     for (n, nw_ref) in nws(pm)
         from_idx[n] = Dict(arc[1] => arc for arc in nw_ref[:arcs_from_dc])
