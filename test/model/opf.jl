@@ -167,7 +167,7 @@ end
 end
 
 
-#=
+
 function run_file(file_name)
     include(file_name)
     return nlp_solver, data, status, cost
@@ -186,4 +186,4 @@ end
     pm_result = run_dc_opf(data, solver)
     @test isapprox(cost, pm_result["objective"]; atol = 1e-6)
 end
-=#
+
