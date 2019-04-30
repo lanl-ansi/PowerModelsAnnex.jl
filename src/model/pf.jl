@@ -4,29 +4,29 @@ export post_ac_pf, post_soc_pf, post_dc_pf
 Given a JuMP model and a PowerModels network data structure,
 Builds an AC-PF formulation of the given data and returns the JuMP model
 """
-function post_ac_pf(data::Dict{String,Any}, model=JuMP.Model())
+function post_ac_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
     ref = PowerModels.build_ref(data)[:nw][0]
 
-    JuMP.@variable(model, va[i in keys(ref[:bus])])
-    JuMP.@variable(model, vm[i in keys(ref[:bus])], start=1.0)
+    @variable(model, va[i in keys(ref[:bus])])
+    @variable(model, vm[i in keys(ref[:bus])], start=1.0)
 
-    JuMP.@variable(model, pg[i in keys(ref[:gen])])
-    JuMP.@variable(model, qg[i in keys(ref[:gen])])
+    @variable(model, pg[i in keys(ref[:gen])])
+    @variable(model, qg[i in keys(ref[:gen])])
 
-    JuMP.@variable(model, p[(l,i,j) in ref[:arcs]])
-    JuMP.@variable(model, q[(l,i,j) in ref[:arcs]])
+    @variable(model, p[(l,i,j) in ref[:arcs]])
+    @variable(model, q[(l,i,j) in ref[:arcs]])
 
-    JuMP.@variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
-    JuMP.@variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
         @assert bus["bus_type"] == 3
-        JuMP.@constraint(model, va[i] == 0)
-        JuMP.@constraint(model, vm[i] == bus["vm"])
+        @constraint(model, va[i] == 0)
+        @constraint(model, vm[i] == bus["vm"])
     end
 
     for (i,bus) in ref[:bus]
@@ -34,14 +34,14 @@ function post_ac_pf(data::Dict{String,Any}, model=JuMP.Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*vm[i]^2
         )
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -
@@ -54,10 +54,10 @@ function post_ac_pf(data::Dict{String,Any}, model=JuMP.Model())
             # this assumes inactive generators are filtered out of bus_gens
             @assert bus["bus_type"] == 2
 
-            JuMP.@constraint(model, vm[i] == bus["vm"])
+            @constraint(model, vm[i] == bus["vm"])
 
             for j in ref[:bus_gens][i]
-                JuMP.@constraint(model, pg[j] == ref[:gen][j]["pg"])
+                @constraint(model, pg[j] == ref[:gen][j]["pg"])
             end
         end
     end
@@ -86,11 +86,11 @@ function post_ac_pf(data::Dict{String,Any}, model=JuMP.Model())
         b_to = branch["b_to"]
         tm = branch["tap"]^2
 
-        JuMP.@NLconstraint(model, p_fr ==  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
-        JuMP.@NLconstraint(model, q_fr == -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        @NLconstraint(model, p_fr ==  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        @NLconstraint(model, q_fr == -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
 
-        JuMP.@NLconstraint(model, p_to ==  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
-        JuMP.@NLconstraint(model, q_to == -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        @NLconstraint(model, p_to ==  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        @NLconstraint(model, q_to == -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
     end
 
     for (i,dcline) in ref[:dcline]
@@ -98,17 +98,17 @@ function post_ac_pf(data::Dict{String,Any}, model=JuMP.Model())
         f_idx = (i, dcline["f_bus"], dcline["t_bus"])
         t_idx = (i, dcline["t_bus"], dcline["f_bus"])
 
-        JuMP.@constraint(model, p_dc[f_idx] == dcline["pf"])
-        JuMP.@constraint(model, p_dc[t_idx] == dcline["pt"])
+        @constraint(model, p_dc[f_idx] == dcline["pf"])
+        @constraint(model, p_dc[t_idx] == dcline["pt"])
 
         f_bus = ref[:bus][dcline["f_bus"]]
         if f_bus["bus_type"] == 1
-            JuMP.@constraint(model, vm[dcline["f_bus"]] == f_bus["vm"])
+            @constraint(model, vm[dcline["f_bus"]] == f_bus["vm"])
         end
 
         t_bus = ref[:bus][dcline["t_bus"]]
         if t_bus["bus_type"] == 1
-            JuMP.@constraint(model, vm[dcline["t_bus"]] == t_bus["vm"])
+            @constraint(model, vm[dcline["t_bus"]] == t_bus["vm"])
         end
     end
 
@@ -120,34 +120,34 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an SOC-PF formulation of the given data and returns the JuMP model
 """
-function post_soc_pf(data::Dict{String,Any}, model=JuMP.Model())
+function post_soc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
     ref = PowerModels.build_ref(data)[:nw][0]
 
-    JuMP.@variable(model, w[i in keys(ref[:bus])] >= 0, start=1.001)
-    JuMP.@variable(model, wr[bp in keys(ref[:buspairs])], start=1.0)
-    JuMP.@variable(model, wi[bp in keys(ref[:buspairs])])
+    @variable(model, w[i in keys(ref[:bus])] >= 0, start=1.001)
+    @variable(model, wr[bp in keys(ref[:buspairs])], start=1.0)
+    @variable(model, wi[bp in keys(ref[:buspairs])])
 
-    JuMP.@variable(model, pg[i in keys(ref[:gen])])
-    JuMP.@variable(model, qg[i in keys(ref[:gen])])
+    @variable(model, pg[i in keys(ref[:gen])])
+    @variable(model, qg[i in keys(ref[:gen])])
 
-    JuMP.@variable(model, p[(l,i,j) in ref[:arcs]])
-    JuMP.@variable(model, q[(l,i,j) in ref[:arcs]])
+    @variable(model, p[(l,i,j) in ref[:arcs]])
+    @variable(model, q[(l,i,j) in ref[:arcs]])
 
-    JuMP.@variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
-    JuMP.@variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
 
     for (i,j) in keys(ref[:buspairs])
         # Voltage Product Relaxation
-        JuMP.@constraint(model, wr[(i,j)]^2 + wi[(i,j)]^2 <= w[i]*w[j])
+        @constraint(model, wr[(i,j)]^2 + wi[(i,j)]^2 <= w[i]*w[j])
     end
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
         @assert bus["bus_type"] == 3
-        JuMP.@constraint(model, w[i] == bus["vm"]^2)
+        @constraint(model, w[i] == bus["vm"]^2)
     end
 
     for (i,bus) in ref[:bus]
@@ -155,14 +155,14 @@ function post_soc_pf(data::Dict{String,Any}, model=JuMP.Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*w[i]
         )
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -
@@ -175,9 +175,9 @@ function post_soc_pf(data::Dict{String,Any}, model=JuMP.Model())
             # this assumes inactive generators are filtered out of bus_gens
             @assert bus["bus_type"] == 2
 
-            JuMP.@constraint(model, w[i] == bus["vm"]^2)
+            @constraint(model, w[i] == bus["vm"]^2)
             for j in ref[:bus_gens][i]
-                JuMP.@constraint(model, pg[j] == ref[:gen][j]["pg"])
+                @constraint(model, pg[j] == ref[:gen][j]["pg"])
             end
         end
     end
@@ -206,11 +206,11 @@ function post_soc_pf(data::Dict{String,Any}, model=JuMP.Model())
         b_to = branch["b_to"]
         tm = branch["tap"]^2
 
-        JuMP.@constraint(model, p_fr ==  (g+g_fr)/tm*w_fr + (-g*tr+b*ti)/tm*(wr_br) + (-b*tr-g*ti)/tm*(wi_br) )
-        JuMP.@constraint(model, q_fr == -(b+b_fr)/tm*w_fr - (-b*tr-g*ti)/tm*(wr_br) + (-g*tr+b*ti)/tm*(wi_br) )
+        @constraint(model, p_fr ==  (g+g_fr)/tm*w_fr + (-g*tr+b*ti)/tm*(wr_br) + (-b*tr-g*ti)/tm*(wi_br) )
+        @constraint(model, q_fr == -(b+b_fr)/tm*w_fr - (-b*tr-g*ti)/tm*(wr_br) + (-g*tr+b*ti)/tm*(wi_br) )
 
-        JuMP.@constraint(model, p_to ==  (g+g_to)*w_to + (-g*tr-b*ti)/tm*(wr_br) + (-b*tr+g*ti)/tm*(-wi_br) )
-        JuMP.@constraint(model, q_to == -(b+b_to)*w_to - (-b*tr+g*ti)/tm*(wr_br) + (-g*tr-b*ti)/tm*(-wi_br) )
+        @constraint(model, p_to ==  (g+g_to)*w_to + (-g*tr-b*ti)/tm*(wr_br) + (-b*tr+g*ti)/tm*(-wi_br) )
+        @constraint(model, q_to == -(b+b_to)*w_to - (-b*tr+g*ti)/tm*(wr_br) + (-g*tr-b*ti)/tm*(-wi_br) )
     end
 
     for (i,dcline) in ref[:dcline]
@@ -218,17 +218,17 @@ function post_soc_pf(data::Dict{String,Any}, model=JuMP.Model())
         f_idx = (i, dcline["f_bus"], dcline["t_bus"])
         t_idx = (i, dcline["t_bus"], dcline["f_bus"])
 
-        JuMP.@constraint(model, p_dc[f_idx] == dcline["pf"])
-        JuMP.@constraint(model, p_dc[t_idx] == dcline["pt"])
+        @constraint(model, p_dc[f_idx] == dcline["pf"])
+        @constraint(model, p_dc[t_idx] == dcline["pt"])
 
         f_bus = ref[:bus][dcline["f_bus"]]
         if f_bus["bus_type"] == 1
-            JuMP.@constraint(model, w[dcline["f_bus"]] == f_bus["vm"]^2)
+            @constraint(model, w[dcline["f_bus"]] == f_bus["vm"]^2)
         end
 
         t_bus = ref[:bus][dcline["t_bus"]]
         if t_bus["bus_type"] == 1
-            JuMP.@constraint(model, w[dcline["t_bus"]] == t_bus["vm"]^2)
+            @constraint(model, w[dcline["t_bus"]] == t_bus["vm"]^2)
         end
     end
 
@@ -240,26 +240,26 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an DC-PF formulation of the given data and returns the JuMP model
 """
-function post_dc_pf(data::Dict{String,Any}, model=JuMP.Model())
+function post_dc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
     ref = PowerModels.build_ref(data)[:nw][0]
 
-    JuMP.@variable(model, va[i in keys(ref[:bus])])
+    @variable(model, va[i in keys(ref[:bus])])
 
-    JuMP.@variable(model, pg[i in keys(ref[:gen])])
+    @variable(model, pg[i in keys(ref[:gen])])
 
-    JuMP.@variable(model, p[(l,i,j) in ref[:arcs_from]])
+    @variable(model, p[(l,i,j) in ref[:arcs_from]])
 
     p_expr = Dict([((l,i,j), 1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]])
     p_expr = merge(p_expr, Dict([((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]]))
 
-    JuMP.@variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
-        JuMP.@constraint(model, va[i] == 0)
+        @constraint(model, va[i] == 0)
     end
 
     for (i,bus) in ref[:bus]
@@ -267,7 +267,7 @@ function post_dc_pf(data::Dict{String,Any}, model=JuMP.Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p_expr[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
@@ -281,7 +281,7 @@ function post_dc_pf(data::Dict{String,Any}, model=JuMP.Model())
             @assert bus["bus_type"] == 2
 
             for j in ref[:bus_gens][i]
-                JuMP.@constraint(model, pg[j] == ref[:gen][j]["pg"])
+                @constraint(model, pg[j] == ref[:gen][j]["pg"])
             end
         end
     end
@@ -298,7 +298,7 @@ function post_dc_pf(data::Dict{String,Any}, model=JuMP.Model())
         # Line Flow
         g, b = PowerModels.calc_branch_y(branch)
 
-        JuMP.@constraint(model, p_fr == -b*(va_fr - va_to))
+        @constraint(model, p_fr == -b*(va_fr - va_to))
     end
 
     for (i,dcline) in ref[:dcline]
@@ -306,8 +306,8 @@ function post_dc_pf(data::Dict{String,Any}, model=JuMP.Model())
         f_idx = (i, dcline["f_bus"], dcline["t_bus"])
         t_idx = (i, dcline["t_bus"], dcline["f_bus"])
 
-        JuMP.@constraint(model, p_dc[f_idx] == dcline["pf"])
-        JuMP.@constraint(model, p_dc[t_idx] == dcline["pt"])
+        @constraint(model, p_dc[f_idx] == dcline["pf"])
+        @constraint(model, p_dc[t_idx] == dcline["pt"])
     end
 
     return model

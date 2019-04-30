@@ -4,34 +4,34 @@ export post_ac_opf, post_soc_opf, post_qc_opf, post_dc_opf
 Given a JuMP model and a PowerModels network data structure,
 Builds an AC-OPF formulation of the given data and returns the JuMP model
 """
-function post_ac_opf(data::Dict{String,Any}, model=JuMP.Model())
+function post_ac_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
     PowerModels.standardize_cost_terms(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
-    JuMP.@variable(model, va[i in keys(ref[:bus])])
-    JuMP.@variable(model, ref[:bus][i]["vmin"] <= vm[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"], start=1.0)
+    @variable(model, va[i in keys(ref[:bus])])
+    @variable(model, ref[:bus][i]["vmin"] <= vm[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"], start=1.0)
 
-    JuMP.@variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
-    JuMP.@variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
+    @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
+    @variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
 
-    JuMP.@variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
-    JuMP.@variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
 
-    JuMP.@variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
-    JuMP.@variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
+    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
+    @variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
-    JuMP.@objective(model, Min,
+    @objective(model, Min,
         sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
     )
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
-        JuMP.@constraint(model, va[i] == 0)
+        @constraint(model, va[i] == 0)
     end
 
     for (i,bus) in ref[:bus]
@@ -39,14 +39,14 @@ function post_ac_opf(data::Dict{String,Any}, model=JuMP.Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*vm[i]^2
         )
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -
@@ -79,19 +79,19 @@ function post_ac_opf(data::Dict{String,Any}, model=JuMP.Model())
         tm = branch["tap"]^2
 
         # AC Line Flow Constraints
-        JuMP.@NLconstraint(model, p_fr ==  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
-        JuMP.@NLconstraint(model, q_fr == -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        @NLconstraint(model, p_fr ==  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        @NLconstraint(model, q_fr == -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
 
-        JuMP.@NLconstraint(model, p_to ==  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
-        JuMP.@NLconstraint(model, q_to == -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        @NLconstraint(model, p_to ==  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        @NLconstraint(model, q_to == -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
 
         # Phase Angle Difference Limit
-        JuMP.@constraint(model, va_fr - va_to <= branch["angmax"])
-        JuMP.@constraint(model, va_fr - va_to >= branch["angmin"])
+        @constraint(model, va_fr - va_to <= branch["angmax"])
+        @constraint(model, va_fr - va_to >= branch["angmin"])
 
         # Apparent Power Limit, From and To
-        JuMP.@constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
-        JuMP.@constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
+        @constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
+        @constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
     end
 
     for (i,dcline) in ref[:dcline]
@@ -99,7 +99,7 @@ function post_ac_opf(data::Dict{String,Any}, model=JuMP.Model())
         f_idx = (i, dcline["f_bus"], dcline["t_bus"])
         t_idx = (i, dcline["t_bus"], dcline["f_bus"])
 
-        JuMP.@constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
+        @constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
     end
 
     return model
@@ -110,31 +110,31 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an SOC-OPF formulation of the given data and returns the JuMP model
 """
-function post_soc_opf(data::Dict{String,Any}, model=JuMP.Model())
+function post_soc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
     PowerModels.standardize_cost_terms(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
-    JuMP.@variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
+    @variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
 
     wr_min, wr_max, wi_min, wi_max = PowerModels.calc_voltage_product_bounds(ref[:buspairs])
 
-    JuMP.@variable(model, wr_min[bp] <= wr[bp in keys(ref[:buspairs])] <= wr_max[bp], start=1.0)
-    JuMP.@variable(model, wi_min[bp] <= wi[bp in keys(ref[:buspairs])] <= wi_max[bp])
+    @variable(model, wr_min[bp] <= wr[bp in keys(ref[:buspairs])] <= wr_max[bp], start=1.0)
+    @variable(model, wi_min[bp] <= wi[bp in keys(ref[:buspairs])] <= wi_max[bp])
 
-    JuMP.@variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
-    JuMP.@variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
+    @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
+    @variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
 
-    JuMP.@variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
-    JuMP.@variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
 
-    JuMP.@variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
-    JuMP.@variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
+    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
+    @variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
-    JuMP.@objective(model, Min,
+    @objective(model, Min,
         sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
     )
@@ -143,7 +143,7 @@ function post_soc_opf(data::Dict{String,Any}, model=JuMP.Model())
         i,j = bp
 
         # Voltage Product Relaxation Lowerbound
-        JuMP.@constraint(model, wr[(i,j)]^2 + wi[(i,j)]^2 <= w[i]*w[j])
+        @constraint(model, wr[(i,j)]^2 + wi[(i,j)]^2 <= w[i]*w[j])
 
         vfub = buspair["vm_fr_max"]
         vflb = buspair["vm_fr_min"]
@@ -159,8 +159,8 @@ function post_soc_opf(data::Dict{String,Any}, model=JuMP.Model())
         st = vtlb + vtub
 
         # Voltage Product Relaxation Upperbound
-        JuMP.@constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtub*cos(d)*st*w[i] - vfub*cos(d)*sf*w[j] >=  vfub*vtub*cos(d)*(vflb*vtlb - vfub*vtub))
-        JuMP.@constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtlb*cos(d)*st*w[i] - vflb*cos(d)*sf*w[j] >= -vflb*vtlb*cos(d)*(vflb*vtlb - vfub*vtub))
+        @constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtub*cos(d)*st*w[i] - vfub*cos(d)*sf*w[j] >=  vfub*vtub*cos(d)*(vflb*vtlb - vfub*vtub))
+        @constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtlb*cos(d)*st*w[i] - vflb*cos(d)*sf*w[j] >= -vflb*vtlb*cos(d)*(vflb*vtlb - vfub*vtub))
     end
 
     for (i,bus) in ref[:bus]
@@ -168,14 +168,14 @@ function post_soc_opf(data::Dict{String,Any}, model=JuMP.Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*w[i]
         )
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -
@@ -209,19 +209,19 @@ function post_soc_opf(data::Dict{String,Any}, model=JuMP.Model())
         tm = branch["tap"]^2
 
         # AC Line Flow Constraints
-        JuMP.@constraint(model, p_fr ==  (g+g_fr)/tm*w_fr + (-g*tr+b*ti)/tm*(wr_br) + (-b*tr-g*ti)/tm*(wi_br) )
-        JuMP.@constraint(model, q_fr == -(b+b_fr)/tm*w_fr - (-b*tr-g*ti)/tm*(wr_br) + (-g*tr+b*ti)/tm*(wi_br) )
+        @constraint(model, p_fr ==  (g+g_fr)/tm*w_fr + (-g*tr+b*ti)/tm*(wr_br) + (-b*tr-g*ti)/tm*(wi_br) )
+        @constraint(model, q_fr == -(b+b_fr)/tm*w_fr - (-b*tr-g*ti)/tm*(wr_br) + (-g*tr+b*ti)/tm*(wi_br) )
 
-        JuMP.@constraint(model, p_to ==  (g+g_to)*w_to + (-g*tr-b*ti)/tm*(wr_br) + (-b*tr+g*ti)/tm*(-wi_br) )
-        JuMP.@constraint(model, q_to == -(b+b_to)*w_to - (-b*tr+g*ti)/tm*(wr_br) + (-g*tr-b*ti)/tm*(-wi_br) )
+        @constraint(model, p_to ==  (g+g_to)*w_to + (-g*tr-b*ti)/tm*(wr_br) + (-b*tr+g*ti)/tm*(-wi_br) )
+        @constraint(model, q_to == -(b+b_to)*w_to - (-b*tr+g*ti)/tm*(wr_br) + (-g*tr-b*ti)/tm*(-wi_br) )
 
         # Phase Angle Difference Limit
-        JuMP.@constraint(model, wi_br <= tan(branch["angmax"])*wr_br)
-        JuMP.@constraint(model, wi_br >= tan(branch["angmin"])*wr_br)
+        @constraint(model, wi_br <= tan(branch["angmax"])*wr_br)
+        @constraint(model, wi_br >= tan(branch["angmin"])*wr_br)
 
         # Apparent Power Limit, From and To
-        JuMP.@constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
-        JuMP.@constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
+        @constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
+        @constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
     end
 
     for (i,dcline) in ref[:dcline]
@@ -229,7 +229,7 @@ function post_soc_opf(data::Dict{String,Any}, model=JuMP.Model())
         f_idx = (i, dcline["f_bus"], dcline["t_bus"])
         t_idx = (i, dcline["t_bus"], dcline["f_bus"])
 
-        JuMP.@constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
+        @constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
     end
 
     return model
@@ -241,7 +241,7 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an QC-OPF formulation of the given data and returns the JuMP model
 Implementation provided by @sidhant172
 """
-function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
+function post_qc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
@@ -249,23 +249,23 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
     ref = PowerModels.build_ref(data)[:nw][0]
 
     # voltage angle and magnitude
-    JuMP.@variable(model, va[i in keys(ref[:bus])])
-    JuMP.@variable(model, ref[:bus][i]["vmin"] <= vm[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"], start=1.0)
+    @variable(model, va[i in keys(ref[:bus])])
+    @variable(model, ref[:bus][i]["vmin"] <= vm[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"], start=1.0)
 
     # voltage squared
-    JuMP.@variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
+    @variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
 
     # voltage product
     wr_min, wr_max, wi_min, wi_max = PowerModels.calc_voltage_product_bounds(ref[:buspairs])
-    JuMP.@variable(model, wr_min[bp] <= wr[bp in keys(ref[:buspairs])] <= wr_max[bp], start=1.0)
-    JuMP.@variable(model, wi_min[bp] <= wi[bp in keys(ref[:buspairs])] <= wi_max[bp])
+    @variable(model, wr_min[bp] <= wr[bp in keys(ref[:buspairs])] <= wr_max[bp], start=1.0)
+    @variable(model, wi_min[bp] <= wi[bp in keys(ref[:buspairs])] <= wi_max[bp])
 
     # voltage angle differences
-    JuMP.@variable(model, ref[:buspairs][bp]["angmin"] <= td[bp in keys(ref[:buspairs])]  <= ref[:buspairs][bp]["angmax"])
+    @variable(model, ref[:buspairs][bp]["angmin"] <= td[bp in keys(ref[:buspairs])]  <= ref[:buspairs][bp]["angmax"])
 
     # variable multipliers in lambda formulation
-    JuMP.@variable(model, 0 <= lambda_wr[bp in keys(ref[:buspairs]), 1:8] <= 1)
-    JuMP.@variable(model, 0 <= lambda_wi[bp in keys(ref[:buspairs]), 1:8] <= 1)
+    @variable(model, 0 <= lambda_wr[bp in keys(ref[:buspairs]), 1:8] <= 1)
+    @variable(model, 0 <= lambda_wi[bp in keys(ref[:buspairs]), 1:8] <= 1)
 
 
     # cosine variables
@@ -293,10 +293,10 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
     # end computing bounds for cosine variables
 
     # defining cosine variables
-    JuMP.@variable(model,  cos_min[bp] <= cs[bp in keys(ref[:buspairs])] <= cos_max[bp])
+    @variable(model,  cos_min[bp] <= cs[bp in keys(ref[:buspairs])] <= cos_max[bp])
 
     # defining sine variables
-    JuMP.@variable(model, sin(ref[:buspairs][bp]["angmin"]) <= si[bp in keys(ref[:buspairs])] <=  sin(ref[:buspairs][bp]["angmax"]))
+    @variable(model, sin(ref[:buspairs][bp]["angmin"]) <= si[bp in keys(ref[:buspairs])] <=  sin(ref[:buspairs][bp]["angmax"]))
 
     # current magnitude squared
     # compute upper bound
@@ -305,25 +305,25 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
         cm_ub[bp] = ((buspair["rate_a"]*buspair["tap"])/buspair["vm_fr_min"])^2
     end
     # define current magnitude variable
-    JuMP.@variable(model, 0 <= cm[bp in keys(ref[:buspairs])] <= cm_ub[bp])
+    @variable(model, 0 <= cm[bp in keys(ref[:buspairs])] <= cm_ub[bp])
 
 
     # line flow variables
-    JuMP.@variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
-    JuMP.@variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
 
     # generation pg an qg
-    JuMP.@variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
-    JuMP.@variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
+    @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
+    @variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
 
     # dc line flows
-    JuMP.@variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
-    JuMP.@variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
+    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
+    @variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
 
 
     # objective
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
-    JuMP.@objective(model, Min,
+    @objective(model, Min,
         sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
     )
@@ -334,36 +334,36 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
 
     # relaxation of vm square
     for (i,bus) in ref[:bus]
-        JuMP.@constraint(model, w[i] >= vm[i]^2)
-        JuMP.@constraint(model, w[i] <= (bus["vmin"] + bus["vmax"])*vm[i] - bus["vmin"]*bus["vmax"])
+        @constraint(model, w[i] >= vm[i]^2)
+        @constraint(model, w[i] <= (bus["vmin"] + bus["vmax"])*vm[i] - bus["vmin"]*bus["vmax"])
     end
 
     # buspair voltage constraints
     for (bp, buspair) in ref[:buspairs]
         i,j = bp
-        JuMP.@constraint(model, va[i] - va[j] == td[bp])
+        @constraint(model, va[i] - va[j] == td[bp])
 
         # relaxation sin
         ub = buspair["angmax"]
         lb = buspair["angmin"]
         max_ad = max(abs(lb),abs(ub))
         if lb < 0 && ub > 0
-            JuMP.@constraint(model, si[bp] <= cos(max_ad/2)*(td[bp] - max_ad/2) + sin(max_ad/2))
-            JuMP.@constraint(model, si[bp] >= cos(max_ad/2)*(td[bp] + max_ad/2) - sin(max_ad/2))
+            @constraint(model, si[bp] <= cos(max_ad/2)*(td[bp] - max_ad/2) + sin(max_ad/2))
+            @constraint(model, si[bp] >= cos(max_ad/2)*(td[bp] + max_ad/2) - sin(max_ad/2))
         end
         if ub <= 0
-            JuMP.@constraint(model, si[bp] <= (sin(lb) - sin(ub))/(lb-ub)*(td[bp] - lb) + sin(lb))
-            JuMP.@constraint(model, si[bp] >= cos(max_ad/2)*(td[bp] + max_ad/2) - sin(max_ad/2))
+            @constraint(model, si[bp] <= (sin(lb) - sin(ub))/(lb-ub)*(td[bp] - lb) + sin(lb))
+            @constraint(model, si[bp] >= cos(max_ad/2)*(td[bp] + max_ad/2) - sin(max_ad/2))
         end
         if lb >= 0
-            JuMP.@constraint(model, si[bp] <= cos(max_ad/2)*(td[bp] - max_ad/2) + sin(max_ad/2))
-            JuMP.@constraint(model, si[bp] >= (sin(lb) - sin(ub))/(lb-ub)*(td[bp] - lb) + sin(lb))
+            @constraint(model, si[bp] <= cos(max_ad/2)*(td[bp] - max_ad/2) + sin(max_ad/2))
+            @constraint(model, si[bp] >= (sin(lb) - sin(ub))/(lb-ub)*(td[bp] - lb) + sin(lb))
         end
         # end of relaxation sin
 
         # relaxation cos
-        JuMP.@constraint(model, cs[bp] <= 1 - (1-cos(max_ad))/(max_ad*max_ad)*(td[bp]^2))
-        JuMP.@constraint(model, cs[bp] >= (cos(lb) - cos(ub))/(lb-ub)*(td[bp] - lb) + cos(lb))
+        @constraint(model, cs[bp] <= 1 - (1-cos(max_ad))/(max_ad*max_ad)*(td[bp]^2))
+        @constraint(model, cs[bp] >= (cos(lb) - cos(ub))/(lb-ub)*(td[bp] - lb) + cos(lb))
         # end of relaxation cos
 
         ##### relaxation trilinear wr
@@ -378,14 +378,14 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
             ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"] * cos_max[bp]
         ]
 
-        JuMP.@constraint(model, wr[bp] == sum(wr_val[ii]*lambda_wr[bp,ii] for ii in 1:8))
-        JuMP.@constraint(model, vm[i] == (lambda_wr[bp,1] + lambda_wr[bp,2] + lambda_wr[bp,3] + lambda_wr[bp,4])*ref[:bus][i]["vmin"] +
+        @constraint(model, wr[bp] == sum(wr_val[ii]*lambda_wr[bp,ii] for ii in 1:8))
+        @constraint(model, vm[i] == (lambda_wr[bp,1] + lambda_wr[bp,2] + lambda_wr[bp,3] + lambda_wr[bp,4])*ref[:bus][i]["vmin"] +
                             (lambda_wr[bp,5] + lambda_wr[bp,6] + lambda_wr[bp,7] + lambda_wr[bp,8])*ref[:bus][i]["vmax"])
-        JuMP.@constraint(model, vm[j] == (lambda_wr[bp,1] + lambda_wr[bp,2] + lambda_wr[bp,5] + lambda_wr[bp,6])*ref[:bus][j]["vmin"] +
+        @constraint(model, vm[j] == (lambda_wr[bp,1] + lambda_wr[bp,2] + lambda_wr[bp,5] + lambda_wr[bp,6])*ref[:bus][j]["vmin"] +
                             (lambda_wr[bp,3] + lambda_wr[bp,4] + lambda_wr[bp,7] + lambda_wr[bp,8])*ref[:bus][j]["vmax"])
-        JuMP.@constraint(model, cs[bp] == (lambda_wr[bp,1] + lambda_wr[bp,3] + lambda_wr[bp,5] + lambda_wr[bp,7])*cos_min[bp] +
+        @constraint(model, cs[bp] == (lambda_wr[bp,1] + lambda_wr[bp,3] + lambda_wr[bp,5] + lambda_wr[bp,7])*cos_min[bp] +
                             (lambda_wr[bp,2] + lambda_wr[bp,4] + lambda_wr[bp,6] + lambda_wr[bp,8])*cos_max[bp])
-        JuMP.@constraint(model, sum(lambda_wr[bp,ii] for ii in 1:8) == 1)
+        @constraint(model, sum(lambda_wr[bp,ii] for ii in 1:8) == 1)
         #### end of relaxation trilinear wr
 
         ##### relaxation trilinear wi
@@ -400,14 +400,14 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
             ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"] * sin(buspair["angmax"])
         ]
 
-        JuMP.@constraint(model, wi[bp] == sum(wi_val[ii]*lambda_wi[bp,ii] for ii in 1:8))
-        JuMP.@constraint(model, vm[i] == (lambda_wi[bp,1] + lambda_wi[bp,2] + lambda_wi[bp,3] + lambda_wi[bp,4])*ref[:bus][i]["vmin"] +
+        @constraint(model, wi[bp] == sum(wi_val[ii]*lambda_wi[bp,ii] for ii in 1:8))
+        @constraint(model, vm[i] == (lambda_wi[bp,1] + lambda_wi[bp,2] + lambda_wi[bp,3] + lambda_wi[bp,4])*ref[:bus][i]["vmin"] +
                             (lambda_wi[bp,5] + lambda_wi[bp,6] + lambda_wi[bp,7] + lambda_wi[bp,8])*ref[:bus][i]["vmax"])
-        JuMP.@constraint(model, vm[j] == (lambda_wi[bp,1] + lambda_wi[bp,2] + lambda_wi[bp,5] + lambda_wi[bp,6])*ref[:bus][j]["vmin"] +
+        @constraint(model, vm[j] == (lambda_wi[bp,1] + lambda_wi[bp,2] + lambda_wi[bp,5] + lambda_wi[bp,6])*ref[:bus][j]["vmin"] +
                             (lambda_wi[bp,3] + lambda_wi[bp,4] + lambda_wi[bp,7] + lambda_wi[bp,8])*ref[:bus][j]["vmax"])
-        JuMP.@constraint(model, si[bp] == (lambda_wi[bp,1] + lambda_wi[bp,3] + lambda_wi[bp,5] + lambda_wi[bp,7])*sin(buspair["angmin"]) +
+        @constraint(model, si[bp] == (lambda_wi[bp,1] + lambda_wi[bp,3] + lambda_wi[bp,5] + lambda_wi[bp,7])*sin(buspair["angmin"]) +
                             (lambda_wi[bp,2] + lambda_wi[bp,4] + lambda_wi[bp,6] + lambda_wi[bp,8])*sin(buspair["angmax"]))
-        JuMP.@constraint(model, sum(lambda_wi[bp,ii] for ii in 1:8) == 1)
+        @constraint(model, sum(lambda_wi[bp,ii] for ii in 1:8) == 1)
         #### end of relaxation trilinear wi
 
         # relaxation tighten vv
@@ -422,7 +422,7 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
             ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"]
         ]
 
-        JuMP.@constraint(model, sum(lambda_wr[bp,ii]*val[ii] - lambda_wi[bp,ii]*val[ii] for ii in 1:8) == 0)
+        @constraint(model, sum(lambda_wr[bp,ii]*val[ii] - lambda_wi[bp,ii]*val[ii] for ii in 1:8) == 0)
         # end of relaxation tighten vv
 
         vfub = buspair["vm_fr_max"]
@@ -439,8 +439,8 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
         st = vtlb + vtub
 
         # Voltage Product Relaxation Upperbound
-        JuMP.@constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtub*cos(d)*st*w[i] - vfub*cos(d)*sf*w[j] >=  vfub*vtub*cos(d)*(vflb*vtlb - vfub*vtub))
-        JuMP.@constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtlb*cos(d)*st*w[i] - vflb*cos(d)*sf*w[j] >= -vflb*vtlb*cos(d)*(vflb*vtlb - vfub*vtub))
+        @constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtub*cos(d)*st*w[i] - vfub*cos(d)*sf*w[j] >=  vfub*vtub*cos(d)*(vflb*vtlb - vfub*vtub))
+        @constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtlb*cos(d)*st*w[i] - vflb*cos(d)*sf*w[j] >= -vflb*vtlb*cos(d)*(vflb*vtlb - vfub*vtub))
     end
 
 
@@ -464,11 +464,11 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
             w_fr = w[branch["f_bus"]]
             w_to = w[branch["t_bus"]]
 
-            JuMP.@constraint(model, p_fr^2 + q_fr^2 <= w_fr/tm^2*cm[bp])
+            @constraint(model, p_fr^2 + q_fr^2 <= w_fr/tm^2*cm[bp])
 
             ym_sh_sqr = g_fr^2 + b_fr^2
 
-            JuMP.@constraint(model, cm[bp] == (g^2 + b^2)*(w_fr/tm^2 + w_to - 2*(tr*wr[bp] + ti*wi[bp])/tm^2) - ym_sh_sqr*(w_fr/tm^2) + 2*(g_fr*p_fr - b_fr*q_fr))
+            @constraint(model, cm[bp] == (g^2 + b^2)*(w_fr/tm^2 + w_to - 2*(tr*wr[bp] + ti*wi[bp])/tm^2) - ym_sh_sqr*(w_fr/tm^2) + 2*(g_fr*p_fr - b_fr*q_fr))
         end
     end
 
@@ -478,7 +478,7 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
 
     # constraint theta ref
     for i in keys(ref[:ref_buses])
-        JuMP.@constraint(model, va[i] == 0)
+        @constraint(model, va[i] == 0)
     end
 
     # constraint KCL shunt
@@ -492,12 +492,12 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
             bs = ref[:shunt][shunt_num]["bs"]
         end
 
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) - sum(load["pd"] for (l,load) in ref[:load] if load["load_bus"]==i)  - gs*w[i]
         )
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) - sum(load["qd"] for (l,load) in ref[:load] if load["load_bus"]==i) + bs*w[i]
@@ -531,19 +531,19 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
         tm = branch["tap"]
 
         # AC Line Flow Constraints
-        JuMP.@constraint(model, p_fr ==  (g+g_fr)/tm^2*w_fr + (-g*tr+b*ti)/tm^2*wr_br + (-b*tr-g*ti)/tm^2*wi_br )
-        JuMP.@constraint(model, q_fr == -(b+b_fr)/tm^2*w_fr - (-b*tr-g*ti)/tm^2*wr_br + (-g*tr+b*ti)/tm^2*wi_br )
+        @constraint(model, p_fr ==  (g+g_fr)/tm^2*w_fr + (-g*tr+b*ti)/tm^2*wr_br + (-b*tr-g*ti)/tm^2*wi_br )
+        @constraint(model, q_fr == -(b+b_fr)/tm^2*w_fr - (-b*tr-g*ti)/tm^2*wr_br + (-g*tr+b*ti)/tm^2*wi_br )
 
-        JuMP.@constraint(model, p_to ==  (g+g_to)*w_to + (-g*tr-b*ti)/tm^2*wr_br + (-b*tr+g*ti)/tm^2*-wi_br )
-        JuMP.@constraint(model, q_to == -(b+b_to)*w_to - (-b*tr+g*ti)/tm^2*wr_br + (-g*tr-b*ti)/tm^2*-wi_br )
+        @constraint(model, p_to ==  (g+g_to)*w_to + (-g*tr-b*ti)/tm^2*wr_br + (-b*tr+g*ti)/tm^2*-wi_br )
+        @constraint(model, q_to == -(b+b_to)*w_to - (-b*tr+g*ti)/tm^2*wr_br + (-g*tr-b*ti)/tm^2*-wi_br )
 
         # Phase Angle Difference Limit
-        JuMP.@constraint(model, wi_br <= tan(branch["angmax"])*wr_br)
-        JuMP.@constraint(model, wi_br >= tan(branch["angmin"])*wr_br)
+        @constraint(model, wi_br <= tan(branch["angmax"])*wr_br)
+        @constraint(model, wi_br >= tan(branch["angmin"])*wr_br)
 
         # Apparent Power Limit, From and To
-        JuMP.@constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
-        JuMP.@constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
+        @constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
+        @constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
     end
 
     # DC line constraints
@@ -552,7 +552,7 @@ function post_qc_opf(data::Dict{String,Any}, model=JuMP.Model())
         f_idx = (i, dcline["f_bus"], dcline["t_bus"])
         t_idx = (i, dcline["t_bus"], dcline["f_bus"])
 
-        JuMP.@constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
+        @constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
     end
 
     return model
@@ -564,33 +564,33 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an DC-OPF formulation of the given data and returns the JuMP model
 """
-function post_dc_opf(data::Dict{String,Any}, model=JuMP.Model())
+function post_dc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
     PowerModels.standardize_cost_terms(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
-    JuMP.@variable(model, va[i in keys(ref[:bus])])
+    @variable(model, va[i in keys(ref[:bus])])
 
-    JuMP.@variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
+    @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
 
-    JuMP.@variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs_from]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs_from]] <= ref[:branch][l]["rate_a"])
 
     p_expr = Dict([((l,i,j), 1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]])
     p_expr = merge(p_expr, Dict([((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]]))
 
-    JuMP.@variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
+    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
-    JuMP.@objective(model, Min,
+    @objective(model, Min,
         sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
     )
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
-        JuMP.@constraint(model, va[i] == 0)
+        @constraint(model, va[i] == 0)
     end
 
     for (i,bus) in ref[:bus]
@@ -598,7 +598,7 @@ function post_dc_opf(data::Dict{String,Any}, model=JuMP.Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p_expr[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
@@ -617,11 +617,11 @@ function post_dc_opf(data::Dict{String,Any}, model=JuMP.Model())
         g, b = PowerModels.calc_branch_y(branch)
 
         # DC Line Flow Constraints
-        JuMP.@constraint(model, p_fr == -b*(va_fr - va_to))
+        @constraint(model, p_fr == -b*(va_fr - va_to))
 
         # Phase Angle Difference Limit
-        JuMP.@constraint(model, va_fr - va_to <= branch["angmax"])
-        JuMP.@constraint(model, va_fr - va_to >= branch["angmin"])
+        @constraint(model, va_fr - va_to <= branch["angmax"])
+        @constraint(model, va_fr - va_to >= branch["angmin"])
 
         # Apparent Power Limit, From and To
         # covered by variable bounds
@@ -632,9 +632,8 @@ function post_dc_opf(data::Dict{String,Any}, model=JuMP.Model())
         f_idx = (i, dcline["f_bus"], dcline["t_bus"])
         t_idx = (i, dcline["t_bus"], dcline["f_bus"])
 
-        JuMP.@constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
+        @constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
     end
 
     return model
 end
-

@@ -16,21 +16,26 @@
 
 # Load Julia Packages
 #--------------------
-import PowerModels
-import Ipopt
-import JuMP
+using PowerModels
+using Ipopt
+using JuMP
 
 
 # Instancate a Solver
 #--------------------
 
-nlp_solver = Ipopt.IpoptSolver(print_level=0)
+nlp_solver = IpoptSolver(print_level=0)
 # note: print_level changes the amount of solver information printed to the terminal
 
 
 # Load System Data
 # ----------------
-powermodels_path = joinpath(dirname(pathof(PowerModels)), "..")
+
+if VERSION < v"0.7.0"
+    powermodels_path = Pkg.dir("PowerModels")
+else
+    powermodels_path = joinpath(dirname(pathof(PowerModels)), "..")
+end
 
 file_name = "$(powermodels_path)/test/data/matpower/case5.m"
 # note: change this string to modify the network data that will be loaded
@@ -54,21 +59,21 @@ ref = PowerModels.build_ref(data)[:nw][0]
 
 # Initialize a JuMP Optimization Model
 #-------------------------------------
-model = JuMP.Model(solver = nlp_solver)
+model = Model(solver = nlp_solver)
 
 
 # Add Optimization and State Variables
 # ------------------------------------
 
 # Add voltage angles va for each bus
-JuMP.@variable(model, va[i in keys(ref[:bus])])
+@variable(model, va[i in keys(ref[:bus])])
 # note: [i in keys(ref[:bus])] adds one `va` variable for each bus in the network
 
 # Add active power generation variable pg for each generator (including limits)
-JuMP.@variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
+@variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
 
 # Add power flow variables p to represent the active power flow for each branch
-JuMP.@variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+@variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
 
 # Build JuMP expressions for the value of p[(l,i,j)] and p[(l,j,i)] on the branches
 p_expr = Dict([((l,i,j), 1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]])
@@ -76,7 +81,7 @@ p_expr = merge(p_expr, Dict([((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs
 # note: this is used to make the definition of nodal power balance simpler
 
 # Add power flow variables p_dc to represent the active power flow for each HVDC line
-JuMP.@variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
+@variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
 
 
 # Add Objective Function
@@ -87,7 +92,7 @@ from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
 
 # Minimize the cost of active power generation and cost of HVDC line usage
 # assumes costs are given as quadratic functions
-JuMP.@objective(model, Min,
+@objective(model, Min,
     sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
     sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
 )
@@ -98,7 +103,7 @@ JuMP.@objective(model, Min,
 
 # Fix the voltage angle to zero at the reference bus
 for (i,bus) in ref[:ref_buses]
-    JuMP.@constraint(model, va[i] == 0)
+    @constraint(model, va[i] == 0)
 end
 
 # Nodal power balance constraints
@@ -108,7 +113,7 @@ for (i,bus) in ref[:bus]
     bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
     # Active power balance at node i
-    JuMP.@constraint(model,
+    @constraint(model,
         sum(p_expr[a] for a in ref[:bus_arcs][i]) +                  # sum of active power flow on lines from bus i +
         sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==     # sum of active power flow on HVDC lines from bus i =
         sum(pg[g] for g in ref[:bus_gens][i]) -                 # sum of active power generation at bus i -
@@ -131,15 +136,15 @@ for (i,branch) in ref[:branch]
     g, b = PowerModels.calc_branch_y(branch)
 
     # DC Power Flow Constraint
-    JuMP.@constraint(model, p_fr == -b*(va_fr - va_to))
+    @constraint(model, p_fr == -b*(va_fr - va_to))
     # note: that upper and lower limits on the power flow (i.e. p_fr) are not included here.
     #   these limits were already enforced for p (which is the same as p_fr) when
     #   the optimization variable p was defined (around line 65).
 
 
     # Voltage angle difference limit
-    JuMP.@constraint(model, va_fr - va_to <= branch["angmax"])
-    JuMP.@constraint(model, va_fr - va_to >= branch["angmin"])
+    @constraint(model, va_fr - va_to <= branch["angmax"])
+    @constraint(model, va_fr - va_to >= branch["angmin"])
 end
 
 # HVDC line constraints
@@ -151,7 +156,7 @@ for (i,dcline) in ref[:dcline]
     # note: it is necessary to distinguish between the from and to sides of a HVDC line due to power losses
 
     # Constraint defining the power flow and losses over the HVDC line
-    JuMP.@constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
+    @constraint(model, (1-dcline["loss1"])*p_dc[f_idx] + (p_dc[t_idx] - dcline["loss0"]) == 0)
 end
 
 
@@ -161,14 +166,14 @@ end
 ###############################################################################
 
 # Solve the optimization problem
-status = JuMP.solve(model)
+status = solve(model)
 
 # Check the value of the objective function
-cost = JuMP.getobjectivevalue(model)
+cost = getobjectivevalue(model)
 println("The cost of generation is $(cost).")
 
 # Check the value of an optimization variable
 # Example: Active power generated at generator 1
-pg1 = JuMP.getvalue(pg[1])
+pg1 = getvalue(pg[1])
 println("The active power generated at generator 1 is $(pg1*ref[:baseMVA]) MW.")
 # note: the optimization model is in per unit, so the baseMVA value is used to restore the physical units
