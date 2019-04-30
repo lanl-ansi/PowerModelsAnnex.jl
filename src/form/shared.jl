@@ -17,7 +17,7 @@ function PMs._objective_min_polynomial_fuel_cost_linear(pm::PMs.GenericPowerMode
         p_dc[(n,c,i)] = PMs.var(pm, n, c, :p_dc, from_idx[n][i])
     end
 
-    return JuMP.@NLobjective(pm.model, Min,
+    return @NLobjective(pm.model, Min,
         sum(
             sum(   gen["cost"][1]*sum( pg[(n,c,i)] for c in PMs.conductor_ids(pm, n))+
                    gen["cost"][2] for (i,gen) in nw_ref[:gen]) +
@@ -44,7 +44,7 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
         p_dc[(n,c,i)] = PMs.var(pm, n, c, :p_dc, from_idx[n][i])
     end
 
-    return JuMP.@NLobjective(pm.model, Min,
+    return @NLobjective(pm.model, Min,
         sum(
             sum(   gen["cost"][1]*sum( pg[(n,c,i)] for c in PMs.conductor_ids(pm, n))^2 +
                    gen["cost"][2]*sum( pg[(n,c,i)] for c in PMs.conductor_ids(pm, n))+

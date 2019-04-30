@@ -22,15 +22,15 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
     from_idx = Dict(arc[1] => arc for arc in PMs.ref(pm, :arcs_from_dc))
 
     pm.var[:pg_sqr] = Dict{Int, Any}()
-    JuMP.@expression(pm.model, gen_cost, 0)
+    @expression(pm.model, gen_cost, 0)
     for (i, gen) in PMs.ref(pm, :gen)
         if gen["cost"][1] != 0.0
-            pg_sqr = pm.var[:pg_sqr][i] = JuMP.@variable(pm.model,
+            pg_sqr = pm.var[:pg_sqr][i] = @variable(pm.model,
                 basename="pg_sqr",
                 lowerbound = PMs.ref(pm, :gen, i, "pmin")^2,
                 upperbound = PMs.ref(pm, :gen, i, "pmax")^2
             )
-            JuMP.@NLconstraint(pm.model, sqrt((2*pg[i])^2 + (pg_sqr-1)^2) <= pg_sqr+1)
+            @NLconstraint(pm.model, sqrt((2*pg[i])^2 + (pg_sqr-1)^2) <= pg_sqr+1)
             gen_cost = gen_cost + gen["cost"][1]*pg_sqr + gen["cost"][2]*pg[i] + gen["cost"][3]
         else
             gen_cost = gen_cost + gen["cost"][2]*pg[i] + gen["cost"][3]
@@ -38,22 +38,22 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
     end
 
     pm.var[:dc_p_sqr] = Dict{Int, Any}()
-    JuMP.@expression(pm.model, dcline_cost, 0)
+    @expression(pm.model, dcline_cost, 0)
     for (i, dcline) in PMs.ref(pm, :dcline)
         if dcline["cost"][1] != 0.0
-            dc_p_sqr = pm.var[:dc_p_sqr][i] = JuMP.@variable(pm.model,
+            dc_p_sqr = pm.var[:dc_p_sqr][i] = @variable(pm.model,
                 basename="dc_p_sqr",
                 lowerbound = PMs.ref(pm, :dcline, i, "pminf")^2,
                 upperbound = PMs.ref(pm, :dcline, i, "pmaxf")^2
             )
-            JuMP.@NLconstraint(pm.model, sqrt((2*dc_p[from_idx[i]])^2 + (dc_p_sqr-1)^2) <= dc_p_sqr+1)
+            @NLconstraint(pm.model, sqrt((2*dc_p[from_idx[i]])^2 + (dc_p_sqr-1)^2) <= dc_p_sqr+1)
             dcline_cost = dcline_cost + dcline["cost"][1]*dc_p_sqr^2 + dcline["cost"][2]*dc_p[from_idx[i]] + dcline["cost"][3]
         else
             dcline_cost = dcline_cost + dcline["cost"][2]*dc_p[from_idx[i]] + dcline["cost"][3]
         end
     end
 
-    return JuMP.objective(pm.model, Min, gen_cost + dcline_cost)
+    return objective(pm.model, Min, gen_cost + dcline_cost)
 end
 
 
@@ -126,7 +126,7 @@ function PMs.constraint_voltage(pm::PMs.GenericPowerModel{T}, n::Int, c::Int) wh
 
     for bp in PMs.ids(pm, n, :buspairs)
         i,j = bp
-        JuMP.@constraint(pm.model, t[i] - t[j] == td[bp])
+        @constraint(pm.model, t[i] - t[j] == td[bp])
 
         PMs.relaxation_sin(pm.model, td[bp], si[bp])
         PMs.relaxation_cos(pm.model, td[bp], cs[bp])
