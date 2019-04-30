@@ -17,15 +17,10 @@ using Memento
 setlevel!(getlogger(InfrastructureModels), "error")
 setlevel!(getlogger(PowerModels), "error")
 
-using Compat.Test
+using Test
 
-if VERSION < v"0.7.0-"
-    pms_path = Pkg.dir("PowerModels")
-end
+pms_path = joinpath(dirname(pathof(PowerModels)), "..")
 
-if VERSION > v"0.7.0-"
-    pms_path = joinpath(dirname(pathof(PowerModels)), "..")
-end
 
 # default setup for solvers
 ipopt_solver = IpoptSolver(tol=1e-6, print_level=0)

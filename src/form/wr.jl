@@ -12,7 +12,7 @@ const SOCWROAPowerModel = PMs.GenericPowerModel{SOCWROAForm}
 SOCWROAPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, SOCWROAForm; kwargs...)
 
 ""
-function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::GenericPowerModel{T}) where T <: SOCWROAForm
+function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerModel{T}) where T <: SOCWROAForm
     @assert !InfrastructureModels.ismultinetwork(pm.data)
     @assert !haskey(pm.data, "conductors")
 
@@ -57,24 +57,24 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::GenericPowerModel
 end
 
 
-function PMs.constraint_voltage(pm::GenericPowerModel{T}, n::Int, h::Int) where T <: SOCWROAForm
+function PMs.constraint_voltage(pm::PMs.GenericPowerModel{T}, n::Int, h::Int) where T <: SOCWROAForm
     w  = var(pm, n, h,  :w)
     wr = var(pm, n, h, :wr)
     wi = var(pm, n, h, :wi)
 
 
-    for (i,j) in ids(pm, n, :buspairs)
+    for (i,j) in PMs.ids(pm, n, :buspairs)
         @NLconstraint(pm.model, (wr[(i,j)]^2 + wi[(i,j)]^2)/w[j] <= w[i])
     end
 end
 
-function PMs.constraint_thermal_limit_from(pm::GenericPowerModel{T}, n::Int, h::Int, f_idx, rate_a) where T <: SOCWROAForm
+function PMs.constraint_thermal_limit_from(pm::PMs.GenericPowerModel{T}, n::Int, h::Int, f_idx, rate_a) where T <: SOCWROAForm
     p_fr = var(pm, n, h, :p, f_idx)
     q_fr = var(pm, n, h, :q, f_idx)
     @NLconstraint(pm.model, sqrt(p_fr^2 + q_fr^2) <= rate_a)
 end
 
-function PMs.constraint_thermal_limit_to(pm::GenericPowerModel{T}, n::Int, h::Int, t_idx, rate_a) where T <: SOCWROAForm
+function PMs.constraint_thermal_limit_to(pm::PMs.GenericPowerModel{T}, n::Int, h::Int, t_idx, rate_a) where T <: SOCWROAForm
     p_to = var(pm, n, h, :p, t_idx)
     q_to = var(pm, n, h, :q, t_idx)
     @NLconstraint(pm.model, sqrt(p_to^2 + q_to^2) <= rate_a)
@@ -86,7 +86,7 @@ end
 
 export NLSOCWRPowerModel, NLSOCWROAForm
 
-@compat abstract type NLSOCWROAForm <: PMs.SOCWRForm end
+abstract type NLSOCWROAForm <: PMs.SOCWRForm end
 
 const NLSOCWRPowerModel = PMs.GenericPowerModel{NLSOCWROAForm}
 
@@ -99,14 +99,14 @@ NLSOCWRPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(dat
 
 export QCWRTriNoLinkPowerModel, QCWRTriNoLinkForm
 
-@compat abstract type QCWRTriNoLinkForm <: PMs.QCWRTriForm end
+abstract type QCWRTriNoLinkForm <: PMs.QCWRTriForm end
 
 const QCWRTriNoLinkPowerModel = PMs.GenericPowerModel{QCWRTriNoLinkForm}
 
 "default QC trilinear without linking constraint model constructor"
 QCWRTriNoLinkPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, QCWRTriNoLinkForm; kwargs...)
 
-function PMs.constraint_voltage(pm::GenericPowerModel{T}, n::Int, c::Int) where T <: QCWRTriNoLinkForm
+function PMs.constraint_voltage(pm::PMs.GenericPowerModel{T}, n::Int, c::Int) where T <: QCWRTriNoLinkForm
     v = var(pm, n, c, :vm)
     t = var(pm, n, c, :va)
 
@@ -124,7 +124,7 @@ function PMs.constraint_voltage(pm::GenericPowerModel{T}, n::Int, c::Int) where 
         InfrastructureModels.relaxation_sqr(pm.model, v[i], w[i])
     end
 
-    for bp in ids(pm, n, :buspairs)
+    for bp in PMs.ids(pm, n, :buspairs)
         i,j = bp
         @constraint(pm.model, t[i] - t[j] == td[bp])
 

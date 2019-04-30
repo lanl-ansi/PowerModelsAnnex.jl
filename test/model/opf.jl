@@ -186,3 +186,4 @@ end
     pm_result = run_dc_opf(data, solver)
     @test isapprox(cost, pm_result["objective"]; atol = 1e-6)
 end
+

@@ -400,7 +400,7 @@ function stripunits!(net::Network)
 end
 
 function matpower2pmc(path::AbstractString)
-    return setlevel!(getlogger(PowerModels), "error") do
+    return Memento.setlevel!(Memento.getlogger(PowerModels), "error") do
         PowerModels.parse_file(path)
     end
 end
