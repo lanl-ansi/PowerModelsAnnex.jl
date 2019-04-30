@@ -25,7 +25,7 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
     @expression(pm.model, gen_cost, 0)
     for (i, gen) in ref(pm, :gen)
         if gen["cost"][1] != 0.0
-            pg_sqr = pm.var[:pg_sqr][i] = @variable(pm.model, 
+            pg_sqr = pm.var[:pg_sqr][i] = @variable(pm.model,
                 basename="pg_sqr",
                 lowerbound = ref(pm, :gen, i, "pmin")^2,
                 upperbound = ref(pm, :gen, i, "pmax")^2
@@ -41,7 +41,7 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
     @expression(pm.model, dcline_cost, 0)
     for (i, dcline) in ref(pm, :dcline)
         if dcline["cost"][1] != 0.0
-            dc_p_sqr = pm.var[:dc_p_sqr][i] = @variable(pm.model, 
+            dc_p_sqr = pm.var[:dc_p_sqr][i] = @variable(pm.model,
                 basename="dc_p_sqr",
                 lowerbound = ref(pm, :dcline, i, "pminf")^2,
                 upperbound = ref(pm, :dcline, i, "pmaxf")^2
@@ -149,4 +149,3 @@ function PMs.constraint_voltage(pm::PMs.GenericPowerModel{T}, n::Int, c::Int) wh
     end
 
 end
-

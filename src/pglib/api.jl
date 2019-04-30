@@ -133,7 +133,7 @@ function constraint_kcl_shunt_scaled(pm::PMs.GenericPowerModel{T}, n::Int, c::In
         qd = 0.0
     end
 
-    if length(bus_shunts) > 0 
+    if length(bus_shunts) > 0
         gs = sum([ref(pm, n, :shunt, i, "gs", c) for i in bus_shunts])
         bs = sum([ref(pm, n, :shunt, i, "bs", c) for i in bus_shunts])
     else
