@@ -18,21 +18,21 @@ function post_sad_opf(pm::PMs.GenericPowerModel)
 
     PMs.constraint_voltage(pm)
 
-    for i in PMs.ids(pm, :ref_buses)
+    for i in ids(pm, :ref_buses)
         PMs.constraint_theta_ref(pm, i)
     end
 
-    for i in PMs.ids(pm, :bus)
+    for i in ids(pm, :bus)
         PMs.constraint_kcl_shunt(pm, i)
     end
 
-    for (i, branch) in PMs.ref(pm, :branch)
+    for (i, branch) in ref(pm, :branch)
         PMs.constraint_ohms_yt_from(pm, i)
         PMs.constraint_ohms_yt_to(pm, i)
 
         PMs.constraint_voltage_angle_difference(pm, i)
-        theta_fr = PMs.var(pm, :va, branch["f_bus"])
-        theta_to = PMs.var(pm, :va, branch["t_bus"])
+        theta_fr = var(pm, :va, branch["f_bus"])
+        theta_to = var(pm, :va, branch["t_bus"])
         @constraint(pm.model, theta_fr - theta_to <=  theta_delta_bound)
         @constraint(pm.model, theta_fr - theta_to >= -theta_delta_bound)
 
@@ -40,7 +40,7 @@ function post_sad_opf(pm::PMs.GenericPowerModel)
         constraint_thermal_limit_to(pm, i; scale = 0.999)
     end
 
-    for i in PMs.ids(pm, :dcline)
+    for i in ids(pm, :dcline)
         PMs.constraint_dcline(pm, i)
     end
 end
