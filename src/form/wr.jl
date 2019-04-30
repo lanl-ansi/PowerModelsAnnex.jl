@@ -16,19 +16,19 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
     @assert !InfrastructureModels.ismultinetwork(pm.data)
     @assert !haskey(pm.data, "conductors")
 
-    pg = PMs.var(pm, :pg)
-    dc_p = PMs.var(pm, :p_dc)
+    pg = var(pm, :pg)
+    dc_p = var(pm, :p_dc)
 
-    from_idx = Dict(arc[1] => arc for arc in PMs.ref(pm, :arcs_from_dc))
+    from_idx = Dict(arc[1] => arc for arc in ref(pm, :arcs_from_dc))
 
     pm.var[:pg_sqr] = Dict{Int, Any}()
     @expression(pm.model, gen_cost, 0)
-    for (i, gen) in PMs.ref(pm, :gen)
+    for (i, gen) in ref(pm, :gen)
         if gen["cost"][1] != 0.0
             pg_sqr = pm.var[:pg_sqr][i] = @variable(pm.model,
                 basename="pg_sqr",
-                lowerbound = PMs.ref(pm, :gen, i, "pmin")^2,
-                upperbound = PMs.ref(pm, :gen, i, "pmax")^2
+                lowerbound = ref(pm, :gen, i, "pmin")^2,
+                upperbound = ref(pm, :gen, i, "pmax")^2
             )
             @NLconstraint(pm.model, sqrt((2*pg[i])^2 + (pg_sqr-1)^2) <= pg_sqr+1)
             gen_cost = gen_cost + gen["cost"][1]*pg_sqr + gen["cost"][2]*pg[i] + gen["cost"][3]
@@ -39,12 +39,12 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
 
     pm.var[:dc_p_sqr] = Dict{Int, Any}()
     @expression(pm.model, dcline_cost, 0)
-    for (i, dcline) in PMs.ref(pm, :dcline)
+    for (i, dcline) in ref(pm, :dcline)
         if dcline["cost"][1] != 0.0
             dc_p_sqr = pm.var[:dc_p_sqr][i] = @variable(pm.model,
                 basename="dc_p_sqr",
-                lowerbound = PMs.ref(pm, :dcline, i, "pminf")^2,
-                upperbound = PMs.ref(pm, :dcline, i, "pmaxf")^2
+                lowerbound = ref(pm, :dcline, i, "pminf")^2,
+                upperbound = ref(pm, :dcline, i, "pmaxf")^2
             )
             @NLconstraint(pm.model, sqrt((2*dc_p[from_idx[i]])^2 + (dc_p_sqr-1)^2) <= dc_p_sqr+1)
             dcline_cost = dcline_cost + dcline["cost"][1]*dc_p_sqr^2 + dcline["cost"][2]*dc_p[from_idx[i]] + dcline["cost"][3]
@@ -53,7 +53,7 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
         end
     end
 
-    return objective(pm.model, Min, gen_cost + dcline_cost)
+    return @objective(pm.model, Min, gen_cost + dcline_cost)
 end
 
 
@@ -110,17 +110,17 @@ function PMs.constraint_voltage(pm::PMs.GenericPowerModel{T}, n::Int, c::Int) wh
     v = var(pm, n, c, :vm)
     t = var(pm, n, c, :va)
 
-    td = PMs.var(pm, n, c, :td)
-    si = PMs.var(pm, n, c, :si)
-    cs = PMs.var(pm, n, c, :cs)
+    td = var(pm, n, c, :td)
+    si = var(pm, n, c, :si)
+    cs = var(pm, n, c, :cs)
 
-    w = PMs.var(pm, n, c, :w)
-    wr = PMs.var(pm, n, c, :wr)
-    lambda_wr = PMs.var(pm, n, c, :lambda_wr)
-    wi = PMs.var(pm, n, c, :wi)
-    lambda_wi = PMs.var(pm, n, c, :lambda_wi)
+    w = var(pm, n, c, :w)
+    wr = var(pm, n, c, :wr)
+    lambda_wr = var(pm, n, c, :lambda_wr)
+    wi = var(pm, n, c, :wi)
+    lambda_wi = var(pm, n, c, :lambda_wi)
 
-    for (i,b) in PMs.ref(pm, n, :bus)
+    for (i,b) in ref(pm, n, :bus)
         InfrastructureModels.relaxation_sqr(pm.model, v[i], w[i])
     end
 
@@ -137,9 +137,9 @@ function PMs.constraint_voltage(pm::PMs.GenericPowerModel{T}, n::Int, c::Int) wh
         #InfrastructureModels.relaxation_complex_product(pm.model, w[i], w[j], wr[bp], wi[bp])
    end
 
-   for (i,branch) in PMs.ref(pm, n, :branch)
+   for (i,branch) in ref(pm, n, :branch)
         pair = (branch["f_bus"], branch["t_bus"])
-        buspair = PMs.ref(pm, n, :buspairs, pair)
+        buspair = ref(pm, n, :buspairs, pair)
 
         # to prevent this constraint from being posted on multiple parallel branchs
         if buspair["branch"] == i
@@ -149,4 +149,3 @@ function PMs.constraint_voltage(pm::PMs.GenericPowerModel{T}, n::Int, c::Int) wh
     end
 
 end
-
