@@ -57,8 +57,8 @@ end
 "variable: load_factor >= 1.0"
 function variable_load_factor(pm::PMs.GenericPowerModel)
     var(pm)[:load_factor] = @variable(pm.model,
-        basename="load_factor",
-        lowerbound=1.0,
+        base_name="load_factor",
+        lower_bound=1.0,
         start = 1.0
     )
 end
@@ -76,7 +76,7 @@ function objective_max_loading_voltage_norm(pm::PMs.GenericPowerModel)
     scale = length(PMs.ids(pm, :bus))
     vm = var(pm, :vm)
 
-    JuMP.@objective(pm.model, Max, 10*scale*load_factor - sum(((bus["vmin"] + bus["vmax"])/2 - vm[i])^2 for (i,bus) in ref(pm, :bus)))
+    @objective(pm.model, Max, 10*scale*load_factor - sum(((bus["vmin"] + bus["vmax"])/2 - vm[i])^2 for (i,bus) in ref(pm, :bus)))
 end
 
 ""
@@ -88,15 +88,15 @@ function objective_max_loading_gen_output(pm::PMs.GenericPowerModel)
     pg = var(pm, :pg)
     qg = var(pm, :qg)
 
-    JuMP.@NLobjective(pm.model, Max, 100*scale*load_factor - sum( (pg[i]^2 - (2*qg[i])^2)^2 for (i,gen) in ref(pm, :gen)))
+    @NLobjective(pm.model, Max, 100*scale*load_factor - sum( (pg[i]^2 - (2*qg[i])^2)^2 for (i,gen) in ref(pm, :gen)))
 end
 
 ""
 function bounds_tighten_voltage(pm::PMs.GenericPowerModel{T}; epsilon = 0.001) where T <: PMs.AbstractACPForm
     for (i,bus) in ref(pm, :bus)
         v = var(pm, :vm, i)
-        set_upper_bound(v, bus["vmax"]*(1.0-epsilon))
-        set_lower_bound(v, bus["vmin"]*(1.0+epsilon))
+        JuMP.set_upper_bound(v, bus["vmax"]*(1.0-epsilon))
+        JuMP.set_lower_bound(v, bus["vmin"]*(1.0+epsilon))
     end
 end
 

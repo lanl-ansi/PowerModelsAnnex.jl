@@ -4,23 +4,23 @@ export post_ac_pf, post_soc_pf, post_dc_pf
 Given a JuMP model and a PowerModels network data structure,
 Builds an AC-PF formulation of the given data and returns the JuMP model
 """
-function post_ac_pf(data::Dict{String,Any}, model=JuMP.Model())
+function post_ac_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
     ref = PowerModels.build_ref(data)[:nw][0]
 
-    JuMP.@variable(model, va[i in keys(ref[:bus])])
-    JuMP.@variable(model, vm[i in keys(ref[:bus])], start=1.0)
+    @variable(model, va[i in keys(ref[:bus])])
+    @variable(model, vm[i in keys(ref[:bus])], start=1.0)
 
-    JuMP.@variable(model, pg[i in keys(ref[:gen])])
-    JuMP.@variable(model, qg[i in keys(ref[:gen])])
+    @variable(model, pg[i in keys(ref[:gen])])
+    @variable(model, qg[i in keys(ref[:gen])])
 
-    JuMP.@variable(model, p[(l,i,j) in ref[:arcs]])
-    JuMP.@variable(model, q[(l,i,j) in ref[:arcs]])
+    @variable(model, p[(l,i,j) in ref[:arcs]])
+    @variable(model, q[(l,i,j) in ref[:arcs]])
 
-    JuMP.@variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
-    JuMP.@variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
@@ -87,11 +87,11 @@ function post_ac_pf(data::Dict{String,Any}, model=JuMP.Model())
         b_to = branch["b_to"]
         tm = branch["tap"]^2
 
-        JuMP.@NLconstraint(model, p_fr ==  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
-        JuMP.@NLconstraint(model, q_fr == -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        @NLconstraint(model, p_fr ==  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        @NLconstraint(model, q_fr == -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
 
-        JuMP.@NLconstraint(model, p_to ==  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
-        JuMP.@NLconstraint(model, q_to == -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        @NLconstraint(model, p_to ==  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        @NLconstraint(model, q_to == -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
     end
 
     for (i,dcline) in ref[:dcline]
@@ -121,24 +121,24 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an SOC-PF formulation of the given data and returns the JuMP model
 """
-function post_soc_pf(data::Dict{String,Any}, model=JuMP.Model())
+function post_soc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
     ref = PowerModels.build_ref(data)[:nw][0]
 
-    JuMP.@variable(model, w[i in keys(ref[:bus])] >= 0, start=1.001)
-    JuMP.@variable(model, wr[bp in keys(ref[:buspairs])], start=1.0)
-    JuMP.@variable(model, wi[bp in keys(ref[:buspairs])])
+    @variable(model, w[i in keys(ref[:bus])] >= 0, start=1.001)
+    @variable(model, wr[bp in keys(ref[:buspairs])], start=1.0)
+    @variable(model, wi[bp in keys(ref[:buspairs])])
 
-    JuMP.@variable(model, pg[i in keys(ref[:gen])])
-    JuMP.@variable(model, qg[i in keys(ref[:gen])])
+    @variable(model, pg[i in keys(ref[:gen])])
+    @variable(model, qg[i in keys(ref[:gen])])
 
-    JuMP.@variable(model, p[(l,i,j) in ref[:arcs]])
-    JuMP.@variable(model, q[(l,i,j) in ref[:arcs]])
+    @variable(model, p[(l,i,j) in ref[:arcs]])
+    @variable(model, q[(l,i,j) in ref[:arcs]])
 
-    JuMP.@variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
-    JuMP.@variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
 
     for (i,j) in keys(ref[:buspairs])
         # Voltage Product Relaxation
@@ -242,22 +242,22 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an DC-PF formulation of the given data and returns the JuMP model
 """
-function post_dc_pf(data::Dict{String,Any}, model=JuMP.Model())
+function post_dc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
     ref = PowerModels.build_ref(data)[:nw][0]
 
-    JuMP.@variable(model, va[i in keys(ref[:bus])])
+    @variable(model, va[i in keys(ref[:bus])])
 
-    JuMP.@variable(model, pg[i in keys(ref[:gen])])
+    @variable(model, pg[i in keys(ref[:gen])])
 
-    JuMP.@variable(model, p[(l,i,j) in ref[:arcs_from]])
+    @variable(model, p[(l,i,j) in ref[:arcs_from]])
 
     p_expr = Dict([((l,i,j), 1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]])
     p_expr = merge(p_expr, Dict([((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]]))
 
-    JuMP.@variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
+    @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus

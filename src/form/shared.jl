@@ -9,19 +9,19 @@ function PMs._objective_min_polynomial_fuel_cost_linear(pm::PMs.GenericPowerMode
 
     pg = Dict()
     for n in PMs.nw_ids(pm), c in PMs.conductor_ids(pm, n), i in PMs.ids(pm, n, :gen)
-        pg[(n,c,i)] = PMs.var(pm, n, c, :pg, i)
+        pg[(n,c,i)] = var(pm, n, c, :pg, i)
     end
 
     p_dc = Dict()
     for n in PMs.nw_ids(pm), c in PMs.conductor_ids(pm, n), i in PMs.ids(pm, n, :dcline)
-        p_dc[(n,c,i)] = PMs.var(pm, n, c, :p_dc, from_idx[n][i])
+        p_dc[(n,c,i)] = var(pm, n, c, :p_dc, from_idx[n][i])
     end
 
-    return JuMP.@NLobjective(pm.model, Min,
+    return @NLobjective(pm.model, Min,
         sum(
             sum(   gen["cost"][1]*sum( pg[(n,c,i)] for c in PMs.conductor_ids(pm, n))+
                    gen["cost"][2] for (i,gen) in nw_ref[:gen]) +
-            sum(   dcline["cost"][1]*sum( PMs.var(pm, n, c, :p_dc, from_idx[n][i]) for c in PMs.conductor_ids(pm, n)) +
+            sum(   dcline["cost"][1]*sum( var(pm, n, c, :p_dc, from_idx[n][i]) for c in PMs.conductor_ids(pm, n)) +
                    dcline["cost"][2] for (i,dcline) in nw_ref[:dcline])
         for (n, nw_ref) in PMs.nws(pm))
     )
@@ -36,15 +36,15 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
 
     pg = Dict()
     for n in PMs.nw_ids(pm), c in PMs.conductor_ids(pm, n), i in PMs.ids(pm, n, :gen)
-        pg[(n,c,i)] = PMs.var(pm, n, c, :pg, i)
+        pg[(n,c,i)] = var(pm, n, c, :pg, i)
     end
 
     p_dc = Dict()
     for n in PMs.nw_ids(pm), c in PMs.conductor_ids(pm, n), i in PMs.ids(pm, n, :dcline)
-        p_dc[(n,c,i)] = PMs.var(pm, n, c, :p_dc, from_idx[n][i])
+        p_dc[(n,c,i)] = var(pm, n, c, :p_dc, from_idx[n][i])
     end
 
-    return JuMP.@NLobjective(pm.model, Min,
+    return @NLobjective(pm.model, Min,
         sum(
             sum(   gen["cost"][1]*sum( pg[(n,c,i)] for c in PMs.conductor_ids(pm, n))^2 +
                    gen["cost"][2]*sum( pg[(n,c,i)] for c in PMs.conductor_ids(pm, n))+

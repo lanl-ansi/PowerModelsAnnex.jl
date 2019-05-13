@@ -5,11 +5,11 @@
 
         p = PMs.var(pm, :p)
         for v in values(p)
-            JuMP.setvalue(v, 1.0)
+            JuMP.set_start_value(v, 1.0)
         end
         q = PMs.var(pm, :q)
         for v in values(q)
-            JuMP.setvalue(v, 1.0)
+            JuMP.set_start_value(v, 1.0)
         end
 
         result = PMs.solve_generic_model(pm, ipopt_solver)
@@ -22,11 +22,11 @@
 
         p = PMs.var(pm, :p)
         for v in values(p)
-            JuMP.setvalue(v, 1.0)
+            JuMP.set_start_value(v, 1.0)
         end
         q = PMs.var(pm, :q)
         for v in values(q)
-            JuMP.setvalue(v, 1.0)
+            JuMP.set_start_value(v, 1.0)
         end
 
         result = PMs.solve_generic_model(pm, ipopt_solver)
@@ -40,11 +40,11 @@
 
         p = PMs.var(pm, :p)
         for v in values(p)
-            JuMP.setvalue(v, 1.0)
+            JuMP.set_start_value(v, 1.0)
         end
         q = PMs.var(pm, :q)
         for v in values(q)
-            JuMP.setvalue(v, 1.0)
+            JuMP.set_start_value(v, 1.0)
         end
 
         result = PMs.solve_generic_model(pm, ipopt_solver)

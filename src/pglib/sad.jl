@@ -12,9 +12,9 @@ function post_sad_opf(pm::PMs.GenericPowerModel)
     PMs.variable_branch_flow(pm)
     PMs.variable_dcline_flow(pm, bounded = false)
 
-    JuMP.@variable(pm.model, theta_delta_bound >= 0.0, start = 0.523598776)
+    @variable(pm.model, theta_delta_bound >= 0.0, start = 0.523598776)
 
-    JuMP.@objective(pm.model, Min, theta_delta_bound)
+    @objective(pm.model, Min, theta_delta_bound)
 
     PMs.constraint_voltage(pm)
 
@@ -26,15 +26,15 @@ function post_sad_opf(pm::PMs.GenericPowerModel)
         PMs.constraint_kcl_shunt(pm, i)
     end
 
-    for (i, branch) in PMs.ref(pm, :branch)
+    for (i, branch) in ref(pm, :branch)
         PMs.constraint_ohms_yt_from(pm, i)
         PMs.constraint_ohms_yt_to(pm, i)
 
         PMs.constraint_voltage_angle_difference(pm, i)
-        theta_fr = PMs.var(pm, :va, branch["f_bus"])
-        theta_to = PMs.var(pm, :va, branch["t_bus"])
-        JuMP.@constraint(pm.model, theta_fr - theta_to <=  theta_delta_bound)
-        JuMP.@constraint(pm.model, theta_fr - theta_to >= -theta_delta_bound)
+        theta_fr = var(pm, :va, branch["f_bus"])
+        theta_to = var(pm, :va, branch["t_bus"])
+        @constraint(pm.model, theta_fr - theta_to <=  theta_delta_bound)
+        @constraint(pm.model, theta_fr - theta_to >= -theta_delta_bound)
 
         constraint_thermal_limit_from(pm, i; scale = 0.999)
         constraint_thermal_limit_to(pm, i; scale = 0.999)

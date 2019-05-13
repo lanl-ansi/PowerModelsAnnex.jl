@@ -1,6 +1,7 @@
 module PowerModelsAnnex
 
-import JuMP: @variable, @constraint, @NLconstraint, @objective, @NLobjective, @expression, solve, Model, setupperbound, setlowerbound
+import JuMP
+import JuMP: @variable, @constraint, @NLconstraint, @objective, @NLobjective, @expression, optimize!, Model
 import InfrastructureModels
 import PowerModels
 import PowerModels: ids, ref, var, con
