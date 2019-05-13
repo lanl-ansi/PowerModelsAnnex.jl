@@ -1,8 +1,9 @@
 module PowerModelsAnnex
 
-import JuMP
+import JuMP: @variable, @constraint, @NLconstraint, @objective, @NLobjective, @expression, solve, Model, setupperbound, setlowerbound
 import InfrastructureModels
 import PowerModels
+import PowerModels: ids, ref, var, con
 import Memento
 
 const LOGGER = Memento.getlogger(PowerModels)

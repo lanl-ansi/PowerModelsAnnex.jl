@@ -9,15 +9,8 @@ julia:
 matrix:
   allow_failures:
     - julia: nightly
-cache:
- directories:
-   - /home/travis/.julia
-sudo: false
 addons:
   apt_packages:
     - gfortran
-before_install:
-  - julia -e 'using Pkg; Pkg.update()'
-  - julia -e 'using Pkg; Pkg.rm("PowerModelsAnnex"); Pkg.rm("PowerModelsAnnex")'
 after_success:
-  - julia -e 'using Pkg; Pkg.add("Coverage"); cd(Pkg.dir("PowerModelsAnnex")); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'

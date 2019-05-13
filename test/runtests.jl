@@ -24,6 +24,7 @@ pms_path = joinpath(dirname(pathof(PowerModels)), "..")
 # default setup for solvers
 ipopt_solver = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-6, print_level=0)
 
+
 # this will work because PowerModels is a dependency
 case_files = Dict(
     "case3"      => "$(pms_path)/test/data/matpower/case3.m",

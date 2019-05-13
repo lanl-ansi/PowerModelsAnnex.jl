@@ -24,7 +24,7 @@ function post_ac_opf(data::Dict{String,Any}, model=JuMP.Model())
     JuMP.@variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
-    JuMP.@objective(model, Min,
+    @objective(model, Min,
         sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
     )
@@ -39,14 +39,15 @@ function post_ac_opf(data::Dict{String,Any}, model=JuMP.Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*vm[i]^2
         )
-        JuMP.@constraint(model,
+
+        @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -
@@ -134,7 +135,8 @@ function post_soc_opf(data::Dict{String,Any}, model=JuMP.Model())
     JuMP.@variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
-    JuMP.@objective(model, Min,
+
+    @objective(model, Min,
         sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
     )
@@ -168,14 +170,15 @@ function post_soc_opf(data::Dict{String,Any}, model=JuMP.Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*w[i]
         )
-        JuMP.@constraint(model,
+
+        @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -
@@ -583,7 +586,8 @@ function post_dc_opf(data::Dict{String,Any}, model=JuMP.Model())
     JuMP.@variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
-    JuMP.@objective(model, Min,
+
+    @objective(model, Min,
         sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
     )
@@ -598,7 +602,7 @@ function post_dc_opf(data::Dict{String,Any}, model=JuMP.Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        JuMP.@constraint(model,
+        @constraint(model,
             sum(p_expr[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
@@ -637,4 +641,3 @@ function post_dc_opf(data::Dict{String,Any}, model=JuMP.Model())
 
     return model
 end
-

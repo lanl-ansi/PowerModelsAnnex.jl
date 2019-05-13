@@ -1,6 +1,4 @@
 # PowerModelsAnnex.jl
-Release: [![PowerModelsAnnex](http://pkg.julialang.org/badges/PowerModelsAnnex_0.5.svg)](http://pkg.julialang.org/detail/PowerModelsAnnex), [![PowerModelsAnnex](http://pkg.julialang.org/badges/PowerModelsAnnex_0.6.svg)](http://pkg.julialang.org/detail/PowerModelsAnnex)
-
 Dev:
 [![Build Status](https://travis-ci.org/lanl-ansi/PowerModelsAnnex.jl.svg?branch=master)](https://travis-ci.org/lanl-ansi/PowerModelsAnnex.jl)
 [![codecov](https://codecov.io/gh/lanl-ansi/PowerModelsAnnex.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/lanl-ansi/PowerModelsAnnex.jl)

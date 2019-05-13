@@ -28,9 +28,9 @@ function post_api_opf(pm::PMs.GenericPowerModel)
         PMs.constraint_theta_ref(pm, i)
     end
 
-    for (i,gen) in PMs.ref(pm, :gen)
-        pg = PMs.var(pm, :pg, i)
-        JuMP.@constraint(pm.model, pg >= gen["pmin"])
+    for (i,gen) in ref(pm, :gen)
+        pg = var(pm, :pg, i)
+        @constraint(pm.model, pg >= gen["pmin"])
     end
 
     for i in PMs.ids(pm, :bus)
@@ -56,7 +56,7 @@ end
 
 "variable: load_factor >= 1.0"
 function variable_load_factor(pm::PMs.GenericPowerModel)
-    PMs.var(pm)[:load_factor] = JuMP.@variable(pm.model,
+    var(pm)[:load_factor] = @variable(pm.model,
         basename="load_factor",
         lowerbound=1.0,
         start = 1.0
@@ -65,90 +65,90 @@ end
 
 "objective: Max. load_factor"
 function objective_max_loading(pm::PMs.GenericPowerModel)
-    JuMP.@objective(pm.model, Max, PMs.var(pm, :load_factor))
+    @objective(pm.model, Max, var(pm, :load_factor))
 end
 
 ""
 function objective_max_loading_voltage_norm(pm::PMs.GenericPowerModel)
     # Seems to create too much reactive power and makes even small models hard to converge
-    load_factor = PMs.var(pm, :load_factor)
+    load_factor = var(pm, :load_factor)
 
     scale = length(PMs.ids(pm, :bus))
-    vm = PMs.var(pm, :vm)
+    vm = var(pm, :vm)
 
-    JuMP.@objective(pm.model, Max, 10*scale*load_factor - sum(((bus["vmin"] + bus["vmax"])/2 - vm[i])^2 for (i,bus) in PMs.ref(pm, :bus)))
+    JuMP.@objective(pm.model, Max, 10*scale*load_factor - sum(((bus["vmin"] + bus["vmax"])/2 - vm[i])^2 for (i,bus) in ref(pm, :bus)))
 end
 
 ""
 function objective_max_loading_gen_output(pm::PMs.GenericPowerModel)
     # Works but adds unnecessary runtime
-    load_factor = PMs.var(pm, :load_factor)
+    load_factor = var(pm, :load_factor)
 
     scale = length(PMs.ids(pm, :gen))
-    pg = PMs.var(pm, :pg)
-    qg = PMs.var(pm, :qg)
+    pg = var(pm, :pg)
+    qg = var(pm, :qg)
 
-    JuMP.@NLobjective(pm.model, Max, 100*scale*load_factor - sum( (pg[i]^2 - (2*qg[i])^2)^2 for (i,gen) in PMs.ref(pm, :gen)))
+    JuMP.@NLobjective(pm.model, Max, 100*scale*load_factor - sum( (pg[i]^2 - (2*qg[i])^2)^2 for (i,gen) in ref(pm, :gen)))
 end
 
 ""
 function bounds_tighten_voltage(pm::PMs.GenericPowerModel{T}; epsilon = 0.001) where T <: PMs.AbstractACPForm
-    for (i,bus) in PMs.ref(pm, :bus)
-        v = PMs.var(pm, :vm, i)
-        JuMP.setupperbound(v, bus["vmax"]*(1.0-epsilon))
-        JuMP.setlowerbound(v, bus["vmin"]*(1.0+epsilon))
+    for (i,bus) in ref(pm, :bus)
+        v = var(pm, :vm, i)
+        set_upper_bound(v, bus["vmax"]*(1.0-epsilon))
+        set_lower_bound(v, bus["vmin"]*(1.0+epsilon))
     end
 end
 
 ""
 function upperbound_negative_active_generation(pm::PMs.GenericPowerModel)
-    for (i,gen) in PMs.ref(pm, :gen)
+    for (i,gen) in ref(pm, :gen)
         if gen["pmax"] <= 0
-            pg = PMs.var(pm, :pg, i)
-            JuMP.setupperbound(pg, gen["pmax"])
+            pg = var(pm, :pg, i)
+            JuMP.set_upper_bound(pg, gen["pmax"])
         end
     end
 end
 
 ""
 function constraint_kcl_shunt_scaled(pm::PMs.GenericPowerModel{T}, n::Int, c::Int, i::Int) where T <: PMs.AbstractACPForm
-    bus = PMs.ref(pm, n, :bus, i)
-    bus_arcs = PMs.ref(pm, n, :bus_arcs, i)
-    bus_gens = PMs.ref(pm, n, :bus_gens, i)
-    bus_loads = PMs.ref(pm, n, :bus_loads, i)
-    bus_shunts = PMs.ref(pm, n, :bus_shunts, i)
+    bus = ref(pm, n, :bus, i)
+    bus_arcs = ref(pm, n, :bus_arcs, i)
+    bus_gens = ref(pm, n, :bus_gens, i)
+    bus_loads = ref(pm, n, :bus_loads, i)
+    bus_shunts = ref(pm, n, :bus_shunts, i)
 
-    load_factor = PMs.var(pm, n, c, :load_factor)
-    vm = PMs.var(pm, n, c, :vm, i)
-    p = PMs.var(pm, n, c, :p)
-    q = PMs.var(pm, n, c, :q)
-    pg = PMs.var(pm, n, c, :pg)
-    qg = PMs.var(pm, n, c, :qg)
+    load_factor = var(pm, n, c, :load_factor)
+    vm = var(pm, n, c, :vm, i)
+    p = var(pm, n, c, :p)
+    q = var(pm, n, c, :q)
+    pg = var(pm, n, c, :pg)
+    qg = var(pm, n, c, :qg)
 
     if length(bus_loads) > 0
-        pd = sum([PMs.ref(pm, n, :load, i, "pd", c) for i in bus_loads])
-        qd = sum([PMs.ref(pm, n, :load, i, "qd", c) for i in bus_loads])
+        pd = sum([ref(pm, n, :load, i, "pd", c) for i in bus_loads])
+        qd = sum([ref(pm, n, :load, i, "qd", c) for i in bus_loads])
     else
         pd = 0.0
         qd = 0.0
     end
 
     if length(bus_shunts) > 0
-        gs = sum([PMs.ref(pm, n, :shunt, i, "gs", c) for i in bus_shunts])
-        bs = sum([PMs.ref(pm, n, :shunt, i, "bs", c) for i in bus_shunts])
+        gs = sum([ref(pm, n, :shunt, i, "gs", c) for i in bus_shunts])
+        bs = sum([ref(pm, n, :shunt, i, "bs", c) for i in bus_shunts])
     else
         gs = 0.0
         bs = 0.0
     end
 
     if pd > 0.0 && qd > 0.0
-        JuMP.@constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd*load_factor - gs*vm^2)
+        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd*load_factor - gs*vm^2)
     else
         # super fallback impl
-        JuMP.@constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd - gs*vm^2)
+        @constraint(pm.model, sum(p[a] for a in bus_arcs) == sum(pg[g] for g in bus_gens) - pd - gs*vm^2)
     end
 
-    JuMP.@constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*vm^2)
+    @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*vm^2)
 end
 constraint_kcl_shunt_scaled(pm::PMs.GenericPowerModel, i::Int) = constraint_kcl_shunt_scaled(pm, pm.cnw, pm.ccnd, i)
 

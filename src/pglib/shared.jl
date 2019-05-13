@@ -2,7 +2,7 @@
 
 ""
 function constraint_thermal_limit_from(pm::PMs.GenericPowerModel, n::Int, c::Int, i::Int; scale = 1.0)
-    branch = PMs.ref(pm, n, :branch, i)
+    branch = ref(pm, n, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
     f_idx = (i, f_bus, t_bus)
@@ -13,7 +13,7 @@ constraint_thermal_limit_from(pm::PMs.GenericPowerModel, i::Int; scale = 1.0) = 
 
 ""
 function constraint_thermal_limit_to(pm::PMs.GenericPowerModel, n::Int, c::Int, i::Int; scale = 1.0)
-    branch = PMs.ref(pm, n, :branch, i)
+    branch = ref(pm, n, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
     t_idx = (i, t_bus, f_bus)
