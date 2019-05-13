@@ -1,8 +1,8 @@
 export run_sad_opf
 
 ""
-function run_sad_opf(file, model_constructor, solver; kwargs...)
-    return PMs.run_generic_model(file, model_constructor, solver, post_sad_opf; kwargs...)
+function run_sad_opf(file, model_constructor, optimizer; kwargs...)
+    return PMs.run_generic_model(file, model_constructor, optimizer, post_sad_opf; kwargs...)
 end
 
 ""

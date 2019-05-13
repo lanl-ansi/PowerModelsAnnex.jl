@@ -1,6 +1,6 @@
 
-function run_ac_pf_model(data, solver)
-    model = post_ac_pf(data, JuMP.Model(solver))
+function run_ac_pf_model(data, optimizer)
+    model = post_ac_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
     return status, model
@@ -36,8 +36,8 @@ end
     end
 end
 
-function run_soc_pf_model(data, solver)
-    model = post_soc_pf(data, JuMP.Model(solver))
+function run_soc_pf_model(data, optimizer)
+    model = post_soc_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
     return status, model
@@ -77,8 +77,8 @@ end
     end
 end
 
-function run_dc_pf_model(data, solver)
-    model = post_dc_pf(data, JuMP.Model(solver))
+function run_dc_pf_model(data, optimizer)
+    model = post_dc_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
     return status, model

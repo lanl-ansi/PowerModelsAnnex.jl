@@ -1,8 +1,8 @@
 export run_api_opf
 
 ""
-function run_api_opf(file, model_constructor, solver; kwargs...)
-    return PMs.run_generic_model(file, model_constructor, solver, post_api_opf; solution_builder = get_api_solution, kwargs...)
+function run_api_opf(file, model_constructor, optimizer; kwargs...)
+    return PMs.run_generic_model(file, model_constructor, optimizer, post_api_opf; solution_builder = get_api_solution, kwargs...)
 end
 
 ""

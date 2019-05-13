@@ -24,7 +24,7 @@ using JuMP
 # Instancate a Solver
 #--------------------
 
-nlp_solver = with_optimizer(Ipopt.Optimizer, print_level=0)
+nlp_optimizer = with_optimizer(Ipopt.Optimizer, print_level=0)
 # note: print_level changes the amount of solver information printed to the terminal
 
 
@@ -54,7 +54,7 @@ ref = PowerModels.build_ref(data)[:nw][0]
 
 # Initialize a JuMP Optimization Model
 #-------------------------------------
-model = Model(nlp_solver)
+model = Model(nlp_optimizer)
 
 
 # Add Optimization and State Variables

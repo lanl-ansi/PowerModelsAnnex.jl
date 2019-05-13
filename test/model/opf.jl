@@ -1,6 +1,6 @@
 
-function run_ac_opf_model(data, solver)
-    model = post_ac_opf(data, JuMP.Model(solver))
+function run_ac_opf_model(data, optimizer)
+    model = post_ac_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
     return status, model
@@ -39,8 +39,8 @@ end
     end
 end
 
-function run_soc_opf_model(data, solver)
-    model =  post_soc_opf(data, JuMP.Model(solver))
+function run_soc_opf_model(data, optimizer)
+    model =  post_soc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
     return status, model
@@ -81,8 +81,8 @@ end
 end
 
 
-function run_qc_opf_model(data, solver)
-    model =  post_qc_opf(data, JuMP.Model(solver))
+function run_qc_opf_model(data, optimizer)
+    model =  post_qc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
     return status, model
@@ -123,8 +123,8 @@ end
 end
 
 
-function run_dc_opf_model(data, solver)
-    model = post_dc_opf(data, JuMP.Model(solver))
+function run_dc_opf_model(data, optimizer)
+    model = post_dc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
     return status, model
@@ -174,20 +174,20 @@ end
 
 function run_file(file_name)
     include(file_name)
-    return nlp_solver, data, status, cost
+    return nlp_optimizer, data, status, cost
 end
 
 
 @testset "test ac polar opf" begin
-    solver, data, status, cost = run_file("../../src/model/ac-opf.jl")
-    pm_result = PMs.run_ac_opf(data, solver)
+    optimizer, data, status, cost = run_file("../../src/model/ac-opf.jl")
+    pm_result = PMs.run_ac_opf(data, optimizer)
     @test isapprox(cost, pm_result["objective"]; atol = 1e-6)
 end
 
 
 @testset "test dc polar opf" begin
-    solver, data, status, cost = run_file("../../src/model/dc-opf.jl")
-    pm_result = PMs.run_dc_opf(data, solver)
+    optimizer, data, status, cost = run_file("../../src/model/dc-opf.jl")
+    pm_result = PMs.run_dc_opf(data, optimizer)
     @test isapprox(cost, pm_result["objective"]; atol = 1e-6)
 end
 
