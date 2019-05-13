@@ -24,18 +24,13 @@ using JuMP
 # Instancate a Solver
 #--------------------
 
-nlp_solver = IpoptSolver(print_level=0)
+nlp_optimizer = with_optimizer(Ipopt.Optimizer, print_level=0)
 # note: print_level changes the amount of solver information printed to the terminal
 
 
 # Load System Data
 # ----------------
-
-if VERSION < v"0.7.0"
-    powermodels_path = Pkg.dir("PowerModels")
-else
-    powermodels_path = joinpath(dirname(pathof(PowerModels)), "..")
-end
+powermodels_path = joinpath(dirname(pathof(PowerModels)), "..")
 
 file_name = "$(powermodels_path)/test/data/matpower/case5.m"
 # note: change this string to modify the network data that will be loaded
@@ -59,7 +54,7 @@ ref = PowerModels.build_ref(data)[:nw][0]
 
 # Initialize a JuMP Optimization Model
 #-------------------------------------
-model = Model(solver = nlp_solver)
+model = Model(nlp_optimizer)
 
 
 # Add Optimization and State Variables
@@ -205,14 +200,14 @@ end
 ###############################################################################
 
 # Solve the optimization problem
-status = solve(model)
+status = optimize!(model)
 
 # Check the value of the objective function
-cost = getobjectivevalue(model)
+cost = objective_value(model)
 println("The cost of generation is $(cost).")
 
 # Check the value of an optimization variable
 # Example: Active power generated at generator 1
-pg1 = getvalue(pg[1])
+pg1 = value(pg[1])
 println("The active power generated at generator 1 is $(pg1*ref[:baseMVA]) MW.")
 # note: the optimization model is in per unit, so the baseMVA value is used to restore the physical units

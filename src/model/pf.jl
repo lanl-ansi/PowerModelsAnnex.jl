@@ -41,6 +41,7 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*vm[i]^2
         )
+
         @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
@@ -162,6 +163,7 @@ function post_soc_pf(data::Dict{String,Any}, model=Model())
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*w[i]
         )
+
         @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==

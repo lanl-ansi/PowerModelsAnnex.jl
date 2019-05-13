@@ -22,7 +22,8 @@ using Test
 pms_path = joinpath(dirname(pathof(PowerModels)), "..")
 
 # default setup for solvers
-ipopt_solver = Ipopt.IpoptSolver(tol=1e-6, print_level=0)
+ipopt_solver = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-6, print_level=0)
+
 
 # this will work because PowerModels is a dependency
 case_files = Dict(

@@ -1,8 +1,8 @@
 export run_sad_opf
 
 ""
-function run_sad_opf(file, model_constructor, solver; kwargs...)
-    return PMs.run_generic_model(file, model_constructor, solver, post_sad_opf; kwargs...)
+function run_sad_opf(file, model_constructor, optimizer; kwargs...)
+    return PMs.run_generic_model(file, model_constructor, optimizer, post_sad_opf; kwargs...)
 end
 
 ""
@@ -18,11 +18,11 @@ function post_sad_opf(pm::PMs.GenericPowerModel)
 
     PMs.constraint_voltage(pm)
 
-    for i in ids(pm, :ref_buses)
+    for i in PMs.ids(pm, :ref_buses)
         PMs.constraint_theta_ref(pm, i)
     end
 
-    for i in ids(pm, :bus)
+    for i in PMs.ids(pm, :bus)
         PMs.constraint_kcl_shunt(pm, i)
     end
 
@@ -40,7 +40,7 @@ function post_sad_opf(pm::PMs.GenericPowerModel)
         constraint_thermal_limit_to(pm, i; scale = 0.999)
     end
 
-    for i in ids(pm, :dcline)
+    for i in PMs.ids(pm, :dcline)
         PMs.constraint_dcline(pm, i)
     end
 end

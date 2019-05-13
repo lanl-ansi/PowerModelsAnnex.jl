@@ -26,9 +26,9 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
     for (i, gen) in ref(pm, :gen)
         if gen["cost"][1] != 0.0
             pg_sqr = pm.var[:pg_sqr][i] = @variable(pm.model,
-                basename="pg_sqr",
-                lowerbound = ref(pm, :gen, i, "pmin")^2,
-                upperbound = ref(pm, :gen, i, "pmax")^2
+                base_name="pg_sqr",
+                lower_bound = ref(pm, :gen, i, "pmin")^2,
+                upper_bound = ref(pm, :gen, i, "pmax")^2
             )
             @NLconstraint(pm.model, sqrt((2*pg[i])^2 + (pg_sqr-1)^2) <= pg_sqr+1)
             gen_cost = gen_cost + gen["cost"][1]*pg_sqr + gen["cost"][2]*pg[i] + gen["cost"][3]
@@ -42,9 +42,9 @@ function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerM
     for (i, dcline) in ref(pm, :dcline)
         if dcline["cost"][1] != 0.0
             dc_p_sqr = pm.var[:dc_p_sqr][i] = @variable(pm.model,
-                basename="dc_p_sqr",
-                lowerbound = ref(pm, :dcline, i, "pminf")^2,
-                upperbound = ref(pm, :dcline, i, "pmaxf")^2
+                base_name="dc_p_sqr",
+                lower_bound = ref(pm, :dcline, i, "pminf")^2,
+                upper_bound = ref(pm, :dcline, i, "pmaxf")^2
             )
             @NLconstraint(pm.model, sqrt((2*dc_p[from_idx[i]])^2 + (dc_p_sqr-1)^2) <= dc_p_sqr+1)
             dcline_cost = dcline_cost + dcline["cost"][1]*dc_p_sqr^2 + dcline["cost"][2]*dc_p[from_idx[i]] + dcline["cost"][3]

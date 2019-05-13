@@ -46,6 +46,7 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*vm[i]^2
         )
+
         @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
@@ -134,6 +135,7 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
     @variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
+
     @objective(model, Min,
         sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
@@ -175,6 +177,7 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*w[i]
         )
+
         @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
@@ -583,6 +586,7 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
     @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
+
     @objective(model, Min,
         sum(gen["cost"][1]*pg[i]^2 + gen["cost"][2]*pg[i] + gen["cost"][3] for (i,gen) in ref[:gen]) +
         sum(dcline["cost"][1]*p_dc[from_idx[i]]^2 + dcline["cost"][2]*p_dc[from_idx[i]] + dcline["cost"][3] for (i,dcline) in ref[:dcline])
