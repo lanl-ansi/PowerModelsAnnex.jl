@@ -24,25 +24,25 @@ using PowerModels
 using JuMP
 using Ipopt
 
-ipopt = IpoptSolver()
-model = Model(solver=ipopt)
+ipopt = Ipopt.Optimizer
+model = Model(with_optimizer(ipopt))
 
 data = PowerModels.parse_file("case3.m")
 post_ac_opf(data, model)
-status = solve(model)
+optimize!(model)
 ```
 
 Once the model is solved the solution can be extracted as follows,
 ```
 for (i, bus) in data["bus"]
     if bus["bus_type"] != 4
-        println("$i, $(getvalue(model[:t][bus["index"]])), $(getvalue(model[:v][bus["index"]]))")
+        println("$i, $(value(model[:t][bus["index"]])), $(value(model[:v][bus["index"]]))")
     end
 end
 
 for (i, gen) in data["gen"]
     if gen["gen_status"] != 0
-        println("$i, $(getvalue(model[:pg][gen["index"]])), $(getvalue(model[:qg][gen["index"]]))")
+        println("$i, $(value(model[:pg][gen["index"]])), $(value(model[:qg][gen["index"]]))")
     end
 end
 ```

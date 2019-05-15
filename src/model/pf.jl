@@ -1,7 +1,7 @@
 export post_ac_pf, post_soc_pf, post_dc_pf
 
 """
-Given a JuMP model and a PowerModels network data structure, 
+Given a JuMP model and a PowerModels network data structure,
 Builds an AC-PF formulation of the given data and returns the JuMP model
 """
 function post_ac_pf(data::Dict{String,Any}, model=Model())
@@ -11,7 +11,7 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
     ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
-    @variable(model, vm[i in keys(ref[:bus])] >= 0, start=1.0)
+    @variable(model, vm[i in keys(ref[:bus])], start=1.0)
 
     @variable(model, pg[i in keys(ref[:gen])])
     @variable(model, qg[i in keys(ref[:gen])])
@@ -34,16 +34,17 @@ function post_ac_pf(data::Dict{String,Any}, model=Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        @constraint(model, 
-            sum(p[a] for a in ref[:bus_arcs][i]) + 
-            sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
+        @constraint(model,
+            sum(p[a] for a in ref[:bus_arcs][i]) +
+            sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*vm[i]^2
         )
-        @constraint(model, 
-            sum(q[a] for a in ref[:bus_arcs][i]) + 
-            sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
+
+        @constraint(model,
+            sum(q[a] for a in ref[:bus_arcs][i]) +
+            sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -
             sum(load["qd"] for load in bus_loads) +
             sum(shunt["bs"] for shunt in bus_shunts)*vm[i]^2
@@ -117,7 +118,7 @@ end
 
 
 """
-Given a JuMP model and a PowerModels network data structure, 
+Given a JuMP model and a PowerModels network data structure,
 Builds an SOC-PF formulation of the given data and returns the JuMP model
 """
 function post_soc_pf(data::Dict{String,Any}, model=Model())
@@ -155,16 +156,17 @@ function post_soc_pf(data::Dict{String,Any}, model=Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        @constraint(model, 
-            sum(p[a] for a in ref[:bus_arcs][i]) + 
-            sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
+        @constraint(model,
+            sum(p[a] for a in ref[:bus_arcs][i]) +
+            sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*w[i]
         )
-        @constraint(model, 
-            sum(q[a] for a in ref[:bus_arcs][i]) + 
-            sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
+
+        @constraint(model,
+            sum(q[a] for a in ref[:bus_arcs][i]) +
+            sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -
             sum(load["qd"] for load in bus_loads) +
             sum(shunt["bs"] for shunt in bus_shunts)*w[i]
@@ -237,7 +239,7 @@ end
 
 
 """
-Given a JuMP model and a PowerModels network data structure, 
+Given a JuMP model and a PowerModels network data structure,
 Builds an DC-PF formulation of the given data and returns the JuMP model
 """
 function post_dc_pf(data::Dict{String,Any}, model=Model())
@@ -267,9 +269,9 @@ function post_dc_pf(data::Dict{String,Any}, model=Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        @constraint(model, 
-            sum(p_expr[a] for a in ref[:bus_arcs][i]) + 
-            sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) == 
+        @constraint(model,
+            sum(p_expr[a] for a in ref[:bus_arcs][i]) +
+            sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
             sum(shunt["gs"] for shunt in bus_shunts)*1.0^2

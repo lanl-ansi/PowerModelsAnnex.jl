@@ -1,6 +1,6 @@
 export NLACRPowerModel, NLACRForm
 
-@compat abstract type NLACRForm <: PMs.AbstractACRForm end
+abstract type NLACRForm <: PMs.AbstractACRForm end
 
 const NLACRPowerModel = PMs.GenericPowerModel{NLACRForm}
 
