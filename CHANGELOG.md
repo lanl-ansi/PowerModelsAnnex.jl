@@ -2,7 +2,7 @@ PowerModelsAnnex.jl Change Log
 ==============================
 
 ### Staged
-- nothing
+- Update to PowerModels v0.11
 
 ### v0.2.0
 - Update to JuMP v0.19/MathOptInterface

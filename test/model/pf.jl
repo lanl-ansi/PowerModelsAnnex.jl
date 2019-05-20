@@ -2,8 +2,7 @@
 function run_ac_pf_model(data, optimizer)
     model = post_ac_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
-    status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
-    return status, model
+    return JuMP.termination_status(model), model
 end
 
 @testset "test ac polar pf" begin
@@ -39,8 +38,7 @@ end
 function run_soc_pf_model(data, optimizer)
     model = post_soc_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
-    status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
-    return status, model
+    return JuMP.termination_status(model), model
 end
 
 @testset "test soc w pf" begin
@@ -80,8 +78,7 @@ end
 function run_dc_pf_model(data, optimizer)
     model = post_dc_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
-    status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
-    return status, model
+    return JuMP.termination_status(model), model
 end
 
 @testset "test dc polar pf" begin
@@ -95,8 +92,8 @@ end
         #println(pm_result["status"])
 
         # needed becouse some test networks are not DC feasible
-        if pm_result["status"] == :LocalOptimal
-            @test pf_status == :LocalOptimal
+        if pm_result["termination_status"] == PMs.LOCALLY_SOLVED
+            @test pf_status == PMs.LOCALLY_SOLVED
 
             base_mva = data["baseMVA"]
 
@@ -116,8 +113,8 @@ end
                 end
             end
         else
-            @test pf_status == :Infeasible
-            @test pm_result["status"] == :LocalInfeasible
+            @test pf_status == PMs.LOCALLY_INFEASIBLE
+            @test pm_result["status"] == PMs.LOCALLY_INFEASIBLE
         end
     end
 end

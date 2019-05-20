@@ -5,7 +5,7 @@
 # PowerModels package for data parsing.
 
 # This file can be run by calling `include("ac-opf.jl")` from the Julia REPL or
-# by calling `julia ac-opf.jl` in Julia v0.6.
+# by calling `julia ac-opf.jl` in Julia v1.
 
 # Developed by Line Roald (@lroald) and Carleton Coffrin (@ccoffrin)
 
@@ -200,7 +200,10 @@ end
 ###############################################################################
 
 # Solve the optimization problem
-status = optimize!(model)
+optimize!(model)
+
+# Check that the solver terminated without an error
+println("The solver termination status is $(termination_status(model))")
 
 # Check the value of the objective function
 cost = objective_value(model)
