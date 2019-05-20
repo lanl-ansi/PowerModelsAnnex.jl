@@ -12,7 +12,7 @@ const SOCWROAPowerModel = PMs.GenericPowerModel{SOCWROAForm}
 SOCWROAPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, SOCWROAForm; kwargs...)
 
 ""
-function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerModel{T}) where T <: SOCWROAForm
+function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::PMs.GenericPowerModel{T}) where T <: SOCWROAForm
     @assert !InfrastructureModels.ismultinetwork(pm.data)
     @assert !haskey(pm.data, "conductors")
 
