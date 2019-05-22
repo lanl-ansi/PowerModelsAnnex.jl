@@ -8,7 +8,7 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
-    PowerModels.standardize_cost_terms(data, order=2)
+    PowerModels.standardize_cost_terms!(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
@@ -20,8 +20,23 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
     @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
     @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
 
-    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
-    @variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
+    @variable(model, p_dc[a in ref[:arcs_dc]])
+    @variable(model, q_dc[a in ref[:arcs_dc]])
+
+    for (l,dcline) in ref[:dcline]
+        f_idx = (l, dcline["f_bus"], dcline["t_bus"])
+        t_idx = (l, dcline["t_bus"], dcline["f_bus"])
+
+        JuMP.set_lower_bound(p_dc[f_idx], dcline["pminf"])
+        JuMP.set_upper_bound(p_dc[f_idx], dcline["pmaxf"])
+        JuMP.set_lower_bound(q_dc[f_idx], dcline["qminf"])
+        JuMP.set_upper_bound(q_dc[f_idx], dcline["qmaxf"])
+
+        JuMP.set_lower_bound(p_dc[t_idx], dcline["pmint"])
+        JuMP.set_upper_bound(p_dc[t_idx], dcline["pmaxt"])
+        JuMP.set_lower_bound(q_dc[t_idx], dcline["qmint"])
+        JuMP.set_upper_bound(q_dc[t_idx], dcline["qmaxt"])
+    end
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
     @objective(model, Min,
@@ -115,7 +130,7 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
-    PowerModels.standardize_cost_terms(data, order=2)
+    PowerModels.standardize_cost_terms!(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
@@ -131,8 +146,23 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
     @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
     @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
 
-    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
-    @variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
+    @variable(model, p_dc[a in ref[:arcs_dc]])
+    @variable(model, q_dc[a in ref[:arcs_dc]])
+
+    for (l,dcline) in ref[:dcline]
+        f_idx = (l, dcline["f_bus"], dcline["t_bus"])
+        t_idx = (l, dcline["t_bus"], dcline["f_bus"])
+
+        JuMP.set_lower_bound(p_dc[f_idx], dcline["pminf"])
+        JuMP.set_upper_bound(p_dc[f_idx], dcline["pmaxf"])
+        JuMP.set_lower_bound(q_dc[f_idx], dcline["qminf"])
+        JuMP.set_upper_bound(q_dc[f_idx], dcline["qmaxf"])
+
+        JuMP.set_lower_bound(p_dc[t_idx], dcline["pmint"])
+        JuMP.set_upper_bound(p_dc[t_idx], dcline["pmaxt"])
+        JuMP.set_lower_bound(q_dc[f_idx], dcline["qmint"])
+        JuMP.set_upper_bound(q_dc[f_idx], dcline["qmaxt"])
+    end
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
 
@@ -248,7 +278,7 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
-    PowerModels.standardize_cost_terms(data, order=2)
+    PowerModels.standardize_cost_terms!(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
     # voltage angle and magnitude
@@ -320,9 +350,23 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
     @variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
 
     # dc line flows
-    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
-    @variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
+    @variable(model, p_dc[a in ref[:arcs_dc]])
+    @variable(model, q_dc[a in ref[:arcs_dc]])
 
+    for (l,dcline) in ref[:dcline]
+        f_idx = (l, dcline["f_bus"], dcline["t_bus"])
+        t_idx = (l, dcline["t_bus"], dcline["f_bus"])
+
+        JuMP.set_lower_bound(p_dc[f_idx], dcline["pminf"])
+        JuMP.set_upper_bound(p_dc[f_idx], dcline["pmaxf"])
+        JuMP.set_lower_bound(q_dc[f_idx], dcline["qminf"])
+        JuMP.set_upper_bound(q_dc[f_idx], dcline["qmaxf"])
+
+        JuMP.set_lower_bound(p_dc[t_idx], dcline["pmint"])
+        JuMP.set_upper_bound(p_dc[t_idx], dcline["pmaxt"])
+        JuMP.set_lower_bound(q_dc[f_idx], dcline["qmint"])
+        JuMP.set_upper_bound(q_dc[f_idx], dcline["qmaxt"])
+    end
 
     # objective
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
@@ -571,7 +615,7 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
-    PowerModels.standardize_cost_terms(data, order=2)
+    PowerModels.standardize_cost_terms!(data, order=2)
     ref = PowerModels.build_ref(data)[:nw][0]
 
     @variable(model, va[i in keys(ref[:bus])])
@@ -583,7 +627,18 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
     p_expr = Dict([((l,i,j), 1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]])
     p_expr = merge(p_expr, Dict([((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]]))
 
-    @variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
+    @variable(model, p_dc[a in ref[:arcs_dc]])
+
+    for (l,dcline) in ref[:dcline]
+        f_idx = (l, dcline["f_bus"], dcline["t_bus"])
+        t_idx = (l, dcline["t_bus"], dcline["f_bus"])
+
+        JuMP.set_lower_bound(p_dc[f_idx], dcline["pminf"])
+        JuMP.set_upper_bound(p_dc[f_idx], dcline["pmaxf"])
+
+        JuMP.set_lower_bound(p_dc[t_idx], dcline["pmint"])
+        JuMP.set_upper_bound(p_dc[t_idx], dcline["pmaxt"])
+    end
 
     from_idx = Dict(arc[1] => arc for arc in ref[:arcs_from_dc])
 

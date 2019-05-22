@@ -40,7 +40,7 @@ data = PowerModels.parse_file(file_name)
 
 # Add zeros to turn linear objective functions into quadratic ones
 # so that additional parameter checks are not required
-PowerModels.standardize_cost_terms(data, order=2)
+PowerModels.standardize_cost_terms!(data, order=2)
 
 # use build_ref to filter out inactive components
 ref = PowerModels.build_ref(data)[:nw][0]
@@ -76,7 +76,18 @@ p_expr = merge(p_expr, Dict([((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs
 # note: this is used to make the definition of nodal power balance simpler
 
 # Add power flow variables p_dc to represent the active power flow for each HVDC line
-@variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
+@variable(model, p_dc[a in ref[:arcs_dc]])
+
+for (l,dcline) in ref[:dcline]
+    f_idx = (l, dcline["f_bus"], dcline["t_bus"])
+    t_idx = (l, dcline["t_bus"], dcline["f_bus"])
+
+    JuMP.set_lower_bound(p_dc[f_idx], dcline["pminf"])
+    JuMP.set_upper_bound(p_dc[f_idx], dcline["pmaxf"])
+
+    JuMP.set_lower_bound(p_dc[t_idx], dcline["pmint"])
+    JuMP.set_upper_bound(p_dc[t_idx], dcline["pmaxt"])
+end
 
 
 # Add Objective Function

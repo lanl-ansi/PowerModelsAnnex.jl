@@ -40,7 +40,7 @@ data = PowerModels.parse_file(file_name)
 
 # Add zeros to turn linear objective functions into quadratic ones
 # so that additional parameter checks are not required
-PowerModels.standardize_cost_terms(data, order=2)
+PowerModels.standardize_cost_terms!(data, order=2)
 
 # use build_ref to filter out inactive components
 ref = PowerModels.build_ref(data)[:nw][0]
@@ -80,9 +80,24 @@ model = Model(nlp_optimizer)
 # note: ref[:arcs] includes both the from (i,j) and the to (j,i) sides of a branch
 
 # Add power flow variables p_dc to represent the active power flow for each HVDC line
-@variable(model, ref[:arcs_dc_param][a]["pmin"] <= p_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["pmax"])
+@variable(model, p_dc[a in ref[:arcs_dc]])
 # Add power flow variables q_dc to represent the reactive power flow at each HVDC terminal
-@variable(model, ref[:arcs_dc_param][a]["qmin"] <= q_dc[a in ref[:arcs_dc]] <= ref[:arcs_dc_param][a]["qmax"])
+@variable(model, q_dc[a in ref[:arcs_dc]])
+
+for (l,dcline) in ref[:dcline]
+    f_idx = (l, dcline["f_bus"], dcline["t_bus"])
+    t_idx = (l, dcline["t_bus"], dcline["f_bus"])
+
+    JuMP.set_lower_bound(p_dc[f_idx], dcline["pminf"])
+    JuMP.set_upper_bound(p_dc[f_idx], dcline["pmaxf"])
+    JuMP.set_lower_bound(q_dc[f_idx], dcline["qminf"])
+    JuMP.set_upper_bound(q_dc[f_idx], dcline["qmaxf"])
+
+    JuMP.set_lower_bound(p_dc[t_idx], dcline["pmint"])
+    JuMP.set_upper_bound(p_dc[t_idx], dcline["pmaxt"])
+    JuMP.set_lower_bound(q_dc[f_idx], dcline["qmint"])
+    JuMP.set_upper_bound(q_dc[f_idx], dcline["qmaxt"])
+end
 
 
 # Add Objective Function
