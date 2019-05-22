@@ -12,48 +12,91 @@ const SOCWROAPowerModel = PMs.GenericPowerModel{SOCWROAForm}
 SOCWROAPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, SOCWROAForm; kwargs...)
 
 ""
-function PMs._objective_min_polynomial_fuel_cost_quadratic(pm::PMs.GenericPowerModel{T}) where T <: SOCWROAForm
-    @assert !InfrastructureModels.ismultinetwork(pm.data)
-    @assert !haskey(pm.data, "conductors")
+function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::PMs.GenericPowerModel{T}) where T <: SOCWROAForm
+    gen_cost = Dict()
+    dcline_cost = Dict()
 
-    pg = var(pm, :pg)
-    dc_p = var(pm, :p_dc)
+    for (n, nw_ref) in PMs.nws(pm)
 
-    from_idx = Dict(arc[1] => arc for arc in ref(pm, :arcs_from_dc))
+        var(pm, n)[:pg_sqr] = Dict()
+        for (i,gen) in nw_ref[:gen]
+            pg = sum( var(pm, n, c, :pg, i) for c in PMs.conductor_ids(pm, n) )
 
-    pm.var[:pg_sqr] = Dict{Int, Any}()
-    @expression(pm.model, gen_cost, 0)
-    for (i, gen) in ref(pm, :gen)
-        if gen["cost"][1] != 0.0
-            pg_sqr = pm.var[:pg_sqr][i] = @variable(pm.model,
-                base_name="pg_sqr",
-                lower_bound = ref(pm, :gen, i, "pmin")^2,
-                upper_bound = ref(pm, :gen, i, "pmax")^2
-            )
-            @NLconstraint(pm.model, sqrt((2*pg[i])^2 + (pg_sqr-1)^2) <= pg_sqr+1)
-            gen_cost = gen_cost + gen["cost"][1]*pg_sqr + gen["cost"][2]*pg[i] + gen["cost"][3]
-        else
-            gen_cost = gen_cost + gen["cost"][2]*pg[i] + gen["cost"][3]
+            if length(gen["cost"]) == 1
+                gen_cost[(n,i)] = JuMP.@NLexpression(pm.model, gen["cost"][1])
+            elseif length(gen["cost"]) == 2
+                gen_cost[(n,i)] = JuMP.@NLexpression(pm.model, gen["cost"][1]*pg + gen["cost"][2])
+            elseif length(gen["cost"]) == 3
+                pmin = sum(gen["pmin"][c] for c in PMs.conductor_ids(pm, n))
+                pmax = sum(gen["pmax"][c] for c in PMs.conductor_ids(pm, n))
+
+                pg_sqr_ub = max(pmin^2, pmax^2)
+                pg_sqr_lb = 0.0
+                if pmin > 0.0
+                    pg_sqr_lb = pmin^2
+                end
+                if pmax < 0.0
+                    pg_sqr_lb = pmax^2
+                end
+
+                pg_sqr = var(pm, n, :pg_sqr)[i] = JuMP.@variable(pm.model,
+                    base_name="$(n)_pg_sqr_$(i)",
+                    lower_bound = pg_sqr_lb,
+                    upper_bound = pg_sqr_ub,
+                    start = 0.0
+                )
+                JuMP.@NLconstraint(pm.model, pg^2 <= pg_sqr)
+
+                gen_cost[(n,i)] = JuMP.@NLexpression(pm.model, gen["cost"][1]*pg_sqr + gen["cost"][2]*pg + gen["cost"][3])
+            else
+                gen_cost[(n,i)] = 0.0
+            end
+        end
+
+        from_idx = Dict(arc[1] => arc for arc in nw_ref[:arcs_from_dc])
+
+        var(pm, n)[:p_dc_sqr] = Dict()
+        for (i,dcline) in nw_ref[:dcline]
+            p_dc = sum( var(pm, n, c, :p_dc, from_idx[i]) for c in PMs.conductor_ids(pm, n) )
+
+            if length(dcline["cost"]) == 1
+                dcline_cost[(n,i)] = JuMP.@NLexpression(pm.model, dcline["cost"][1])
+            elseif length(dcline["cost"]) == 2
+                dcline_cost[(n,i)] = JuMP.@NLexpression(pm.model, dcline["cost"][1]*p_dc + dcline["cost"][2])
+            elseif length(dcline["cost"]) == 3
+                pmin = sum(dcline["pminf"][c] for c in PMs.conductor_ids(pm, n))
+                pmax = sum(dcline["pmaxf"][c] for c in PMs.conductor_ids(pm, n))
+
+                p_dc_sqr_ub = max(pmin^2, pmax^2)
+                p_dc_sqr_lb = 0.0
+                if pmin > 0.0
+                    p_dc_sqr_lb = pmin^2
+                end
+                if pmax < 0.0
+                    p_dc_sqr_lb = pmax^2
+                end
+
+                p_dc_sqr = var(pm, n, :p_dc_sqr)[i] = JuMP.@variable(pm.model,
+                    base_name="$(n)_p_dc_sqr_$(i)",
+                    lower_bound = p_dc_sqr_lb,
+                    upper_bound = p_dc_sqr_ub,
+                    start = 0.0
+                )
+                JuMP.@NLconstraint(pm.model, p_dc^2 <= p_dc_sqr)
+
+                dcline_cost[(n,i)] = JuMP.@NLexpression(pm.model, dcline["cost"][1]*p_dc_sqr + dcline["cost"][2]*p_dc + dcline["cost"][3])
+            else
+                dcline_cost[(n,i)] = 0.0
+            end
         end
     end
 
-    pm.var[:dc_p_sqr] = Dict{Int, Any}()
-    @expression(pm.model, dcline_cost, 0)
-    for (i, dcline) in ref(pm, :dcline)
-        if dcline["cost"][1] != 0.0
-            dc_p_sqr = pm.var[:dc_p_sqr][i] = @variable(pm.model,
-                base_name="dc_p_sqr",
-                lower_bound = ref(pm, :dcline, i, "pminf")^2,
-                upper_bound = ref(pm, :dcline, i, "pmaxf")^2
-            )
-            @NLconstraint(pm.model, sqrt((2*dc_p[from_idx[i]])^2 + (dc_p_sqr-1)^2) <= dc_p_sqr+1)
-            dcline_cost = dcline_cost + dcline["cost"][1]*dc_p_sqr^2 + dcline["cost"][2]*dc_p[from_idx[i]] + dcline["cost"][3]
-        else
-            dcline_cost = dcline_cost + dcline["cost"][2]*dc_p[from_idx[i]] + dcline["cost"][3]
-        end
-    end
-
-    return @objective(pm.model, Min, gen_cost + dcline_cost)
+    return JuMP.@NLobjective(pm.model, Min,
+        sum(
+            sum( gen_cost[(n,i)] for (i,gen) in nw_ref[:gen] ) +
+            sum( dcline_cost[(n,i)] for (i,dcline) in nw_ref[:dcline] )
+        for (n, nw_ref) in PMs.nws(pm))
+    )
 end
 
 

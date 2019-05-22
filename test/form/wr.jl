@@ -14,7 +14,7 @@
 
         result = PMs.solve_generic_model(pm, ipopt_solver)
 
-        @test result["status"] == :LocalOptimal
+        @test result["termination_status"] == PMs.LOCALLY_SOLVED
         @test isapprox(result["objective"], 5746.7; atol = 1e0)
     end
     @testset "5-bus pjm case" begin
@@ -31,7 +31,7 @@
 
         result = PMs.solve_generic_model(pm, ipopt_solver)
 
-        @test result["status"] == :LocalOptimal
+        @test result["termination_status"] == PMs.LOCALLY_SOLVED
         @test isapprox(result["objective"], 14999.71; atol = 1e2) # Increasing tolerance
         # here as the result seems to depend on the machine
     end
@@ -49,7 +49,7 @@
 
         result = PMs.solve_generic_model(pm, ipopt_solver)
 
-        @test result["status"] == :LocalOptimal
+        @test result["termination_status"] == PMs.LOCALLY_SOLVED
         @test isapprox(result["objective"], 172.41; atol = 1e0)
     end
 end
@@ -62,7 +62,7 @@ end
 
         result = PMs.solve_generic_model(pm, ipopt_solver)
 
-        @test result["status"] == :LocalOptimal
+        @test result["termination_status"] == PMs.LOCALLY_SOLVED
         @test isapprox(result["objective"], 5817.58; atol = 1e0)
     end
     @testset "5-bus pjm case" begin
@@ -70,7 +70,7 @@ end
 
         result = PMs.solve_generic_model(pm, ipopt_solver)
 
-        @test result["status"] == :LocalOptimal
+        @test result["termination_status"] == PMs.LOCALLY_SOLVED
         @test isapprox(result["objective"], 15051.6; atol = 1e2)
     end
     @testset "30-bus ieee case" begin
@@ -78,7 +78,7 @@ end
 
         result = PMs.solve_generic_model(pm, ipopt_solver)
 
-        @test result["status"] == :LocalOptimal
+        @test result["termination_status"] == PMs.LOCALLY_SOLVED
         @test isapprox(result["objective"], 173.806; atol = 1e0)
     end
 end

@@ -2,8 +2,7 @@
 function run_ac_opf_model(data, optimizer)
     model = post_ac_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
-    status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
-    return status, model
+    return JuMP.termination_status(model), model
 end
 
 @testset "test ac polar opf" begin
@@ -42,8 +41,7 @@ end
 function run_soc_opf_model(data, optimizer)
     model =  post_soc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
-    status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
-    return status, model
+    return JuMP.termination_status(model), model
 end
 
 @testset "test soc w opf" begin
@@ -84,8 +82,7 @@ end
 function run_qc_opf_model(data, optimizer)
     model =  post_qc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
-    status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
-    return status, model
+    return JuMP.termination_status(model), model
 end
 
 @testset "test qc w+l opf" begin
@@ -126,8 +123,7 @@ end
 function run_dc_opf_model(data, optimizer)
     model = post_dc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
-    status = PMs.parse_status(JuMP.termination_status(model), JuMP.primal_status(model), JuMP.dual_status(model))
-    return status, model
+    return JuMP.termination_status(model), model
 end
 
 @testset "test dc polar opf" begin
@@ -143,8 +139,8 @@ end
         @test isapprox(JuMP.objective_value(opf_model), pm_result["objective"]; atol = 1e-5)
 
         # needed becouse some test networks are not DC feasible
-        if pm_result["status"] == :LocalOptimal
-            @test opf_status == :LocalOptimal
+        if pm_result["termination_status"] == PMs.LOCALLY_SOLVED
+            @test opf_status == PMs.LOCALLY_SOLVED
 
             base_mva = data["baseMVA"]
 
@@ -164,8 +160,8 @@ end
                 end
             end
         else
-            @test opf_status == :Infeasible
-            @test pm_result["status"] == :LocalInfeasible
+            @test opf_status == PMs.LOCALLY_INFEASIBLE
+            @test pm_result["status"] == PMs.LOCALLY_INFEASIBLE
         end
     end
 end
@@ -174,7 +170,7 @@ end
 
 function run_file(file_name)
     include(file_name)
-    return nlp_optimizer, data, status, cost
+    return nlp_optimizer, data, termination_status(model), cost
 end
 
 
