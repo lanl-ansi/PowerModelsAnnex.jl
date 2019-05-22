@@ -2,6 +2,9 @@ PowerModelsAnnex.jl Change Log
 ==============================
 
 ### Staged
+- nothing
+
+### v0.2.1
 - Update to PowerModels v0.11
 
 ### v0.2.0
