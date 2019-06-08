@@ -2,7 +2,7 @@ export run_api_opf
 
 ""
 function run_api_opf(file, model_constructor, optimizer; kwargs...)
-    return PMs.run_generic_model(file, model_constructor, optimizer, post_api_opf; solution_builder = get_api_solution, kwargs...)
+    return PMs.run_model(file, model_constructor, optimizer, post_api_opf; solution_builder = solution_api, kwargs...)
 end
 
 ""
@@ -22,7 +22,7 @@ function post_api_opf(pm::PMs.GenericPowerModel)
     #objective_max_loading_voltage_norm(pm)
     #objective_max_loading_gen_output(pm)
 
-    PMs.constraint_voltage(pm)
+    PMs.constraint_model_voltage(pm)
 
     for i in PMs.ids(pm, :ref_buses)
         PMs.constraint_theta_ref(pm, i)
@@ -34,7 +34,7 @@ function post_api_opf(pm::PMs.GenericPowerModel)
     end
 
     for i in PMs.ids(pm, :bus)
-        constraint_kcl_shunt_scaled(pm, i)
+        constraint_power_balance_shunt_scaled(pm, i)
     end
 
     for i in PMs.ids(pm, :branch)
@@ -111,7 +111,7 @@ function upperbound_negative_active_generation(pm::PMs.GenericPowerModel)
 end
 
 ""
-function constraint_kcl_shunt_scaled(pm::PMs.GenericPowerModel{T}, n::Int, c::Int, i::Int) where T <: PMs.AbstractACPForm
+function constraint_power_balance_shunt_scaled(pm::PMs.GenericPowerModel{T}, n::Int, c::Int, i::Int) where T <: PMs.AbstractACPForm
     bus = ref(pm, n, :bus, i)
     bus_arcs = ref(pm, n, :bus_arcs, i)
     bus_gens = ref(pm, n, :bus_gens, i)
@@ -150,22 +150,22 @@ function constraint_kcl_shunt_scaled(pm::PMs.GenericPowerModel{T}, n::Int, c::In
 
     @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*vm^2)
 end
-constraint_kcl_shunt_scaled(pm::PMs.GenericPowerModel, i::Int) = constraint_kcl_shunt_scaled(pm, pm.cnw, pm.ccnd, i)
+constraint_power_balance_shunt_scaled(pm::PMs.GenericPowerModel, i::Int) = constraint_power_balance_shunt_scaled(pm, pm.cnw, pm.ccnd, i)
 
 
 ""
-function get_api_solution(pm::PMs.GenericPowerModel, sol::Dict{String,Any})
-    PMs.add_bus_voltage_setpoint(sol, pm)
-    PMs.add_generator_power_setpoint(sol, pm)
-    PMs.add_branch_flow_setpoint(sol, pm)
+function solution_api(pm::PMs.GenericPowerModel, sol::Dict{String,Any})
+    PMs.add_setpoint_bus_voltage!(sol, pm)
+    PMs.add_setpoint_generator_power!(sol, pm)
+    PMs.add_setpoint_branch_flow!(sol, pm)
 
     # extension
-    add_load_demand_setpoint(sol, pm)
+    add_setpoint_load_demand!(sol, pm)
 end
 
 ""
-function add_load_demand_setpoint(sol, pm::PMs.GenericPowerModel)
+function add_setpoint_load_demand!(sol, pm::PMs.GenericPowerModel)
     mva_base = pm.data["baseMVA"]
-    PMs.add_setpoint(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], extract_var = (var,idx,item) -> var)
-    PMs.add_setpoint(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], extract_var = (var,idx,item) -> var)
+    PMs.add_setpoint!(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], extract_var = (var,idx,item) -> var)
+    PMs.add_setpoint!(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], extract_var = (var,idx,item) -> var)
 end

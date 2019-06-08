@@ -2,7 +2,7 @@ export run_sad_opf
 
 ""
 function run_sad_opf(file, model_constructor, optimizer; kwargs...)
-    return PMs.run_generic_model(file, model_constructor, optimizer, post_sad_opf; kwargs...)
+    return PMs.run_model(file, model_constructor, optimizer, post_sad_opf; kwargs...)
 end
 
 ""
@@ -16,14 +16,14 @@ function post_sad_opf(pm::PMs.GenericPowerModel)
 
     @objective(pm.model, Min, theta_delta_bound)
 
-    PMs.constraint_voltage(pm)
+    PMs.constraint_model_voltage(pm)
 
     for i in PMs.ids(pm, :ref_buses)
         PMs.constraint_theta_ref(pm, i)
     end
 
     for i in PMs.ids(pm, :bus)
-        PMs.constraint_kcl_shunt(pm, i)
+        PMs.constraint_power_balance_shunt(pm, i)
     end
 
     for (i, branch) in ref(pm, :branch)

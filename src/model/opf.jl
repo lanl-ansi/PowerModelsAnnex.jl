@@ -135,7 +135,7 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
 
     @variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
 
-    wr_min, wr_max, wi_min, wi_max = PowerModels.calc_voltage_product_bounds(ref[:buspairs])
+    wr_min, wr_max, wi_min, wi_max = PowerModels.ref_calc_voltage_product_bounds(ref[:buspairs])
 
     @variable(model, wr_min[bp] <= wr[bp in keys(ref[:buspairs])] <= wr_max[bp], start=1.0)
     @variable(model, wi_min[bp] <= wi[bp in keys(ref[:buspairs])] <= wi_max[bp])
@@ -289,7 +289,7 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
     @variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
 
     # voltage product
-    wr_min, wr_max, wi_min, wi_max = PowerModels.calc_voltage_product_bounds(ref[:buspairs])
+    wr_min, wr_max, wi_min, wi_max = PowerModels.ref_calc_voltage_product_bounds(ref[:buspairs])
     @variable(model, wr_min[bp] <= wr[bp in keys(ref[:buspairs])] <= wr_max[bp], start=1.0)
     @variable(model, wi_min[bp] <= wi[bp in keys(ref[:buspairs])] <= wi_max[bp])
 
