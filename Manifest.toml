@@ -185,9 +185,9 @@ version = "0.5.2"
 
 [[PowerModels]]
 deps = ["InfrastructureModels", "JSON", "JuMP", "LinearAlgebra", "MathOptInterface", "Memento", "SparseArrays"]
-git-tree-sha1 = "9c07197b4a3abaf532c584ada66d7b3eab2249c3"
+git-tree-sha1 = "0fcfcd19dbad6710d0f18bd4ae49a98a398c7b6c"
 uuid = "c36e90e8-916a-50a6-bd94-075b64ef4655"
-version = "0.10.1"
+version = "0.12.0"
 
 [[PowerSystemsUnits]]
 deps = ["Compat", "Missings", "Unitful"]
