@@ -156,7 +156,7 @@ end
                 if gen["gen_status"] != 0
                     index = parse(Int, i)
                     #println("$i, $(JuMP.value(opf_model[:pg][index])), $(pm_sol["gen"][i]["pg"])")
-                    @test isapprox(JuMP.value(opf_model[:pg][index]), pm_sol["gen"][i]["pg"])
+                    @test isapprox(JuMP.value(opf_model[:pg][index]), pm_sol["gen"][i]["pg"]; atol = 1e-8)
                 end
             end
         else

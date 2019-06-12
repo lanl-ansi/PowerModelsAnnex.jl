@@ -100,7 +100,7 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::PMs.Generi
 end
 
 
-function PMs.constraint_voltage(pm::PMs.GenericPowerModel{T}, n::Int, h::Int) where T <: SOCWROAForm
+function PMs.constraint_model_voltage(pm::PMs.GenericPowerModel{T}, n::Int, h::Int) where T <: SOCWROAForm
     w  = var(pm, n, h,  :w)
     wr = var(pm, n, h, :wr)
     wi = var(pm, n, h, :wi)
@@ -149,7 +149,7 @@ const QCWRTriNoLinkPowerModel = PMs.GenericPowerModel{QCWRTriNoLinkForm}
 "default QC trilinear without linking constraint model constructor"
 QCWRTriNoLinkPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, QCWRTriNoLinkForm; kwargs...)
 
-function PMs.constraint_voltage(pm::PMs.GenericPowerModel{T}, n::Int, c::Int) where T <: QCWRTriNoLinkForm
+function PMs.constraint_model_voltage(pm::PMs.GenericPowerModel{T}, n::Int, c::Int) where T <: QCWRTriNoLinkForm
     v = var(pm, n, c, :vm)
     t = var(pm, n, c, :va)
 
