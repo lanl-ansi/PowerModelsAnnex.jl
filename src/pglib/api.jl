@@ -163,9 +163,11 @@ function solution_api(pm::PMs.GenericPowerModel, sol::Dict{String,Any})
     add_setpoint_load_demand!(sol, pm)
 end
 
+Base.getindex(x::JuMP.VariableRef, i::Int64) = x
+
 ""
 function add_setpoint_load_demand!(sol, pm::PMs.GenericPowerModel)
     mva_base = pm.data["baseMVA"]
-    PMs.add_setpoint!(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], extract_var = (var,idx,item) -> var)
-    PMs.add_setpoint!(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], extract_var = (var,idx,item) -> var)
+    PMs.add_setpoint!(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], var_key = (idx,item) -> 1)
+    PMs.add_setpoint!(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], var_key = (idx,item) -> 1)
 end
