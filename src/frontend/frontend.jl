@@ -294,9 +294,9 @@ function Network(pmc::Dict)
                 error(LOGGER, "The type selected (PWL) and the cost data are incompatible")
             end
             tmp_ncost = length(row) / 2
-            idx = range(1, Int(tmp_ncost))
-            mws = row[2 * idx - 1] * u"MWh"
-            costs = row[2 * idx] * u"USDPerMWh"
+            idx = range(1, stop = Int(tmp_ncost))
+            mws = row[2 * idx .- 1] * u"MWh"
+            costs = row[2 * idx] * u"USD"
             aux[k]["cost"] = PWLCost(mw=mws, cost=costs)
             aux[k]["ncost"] = tmp_ncost
         elseif aux[k]["model"] == 2
@@ -807,16 +807,16 @@ Make the dimensions and units parameters of the type.
 """
 struct PWLCost <: CostCurve
     mw::AbstractVector{<:PowerSystemsUnits.PowerHour}
-    cost::AbstractVector{<:PowerSystemsUnits.MoneyPerPowerHour}
+    cost::AbstractVector{<:PowerSystemsUnits.Currency}
 # Inner constructor contains some built-in checks
     function PWLCost(;
         mw::AbstractVector{<:PowerSystemsUnits.PowerHour}=PowerSystemsUnits.PowerHour[],
-        cost::AbstractVector{<:PowerSystemsUnits.MoneyPerPowerHour}=PowerSystemsUnits.MoneyPerPowerHour[],
+        cost::AbstractVector{<:PowerSystemsUnits.Currency}=PowerSystemsUnits.Money[],
     )
         if length(mw) != length(cost)
             error(LOGGER, "Malformed cost curve. Please check.")
         else
-            if (eltype(mw) == asqtype(u"MWh")) && (eltype(cost) == asqtype(u"USDPerMWh"))
+            if (eltype(mw) == asqtype(u"MWh")) && (eltype(cost) == asqtype(u"USD"))
                 if is_convex(mw, cost)
                     return new(mw, cost)
                 else
@@ -842,9 +842,9 @@ the slopes of the linear function for each block.
 function prices(pwl_cost::PWLCost)
     out = []
     mw = mws(pwl_cost)
-    usdpermw = costs(pwl_cost)
+    usd = costs(pwl_cost)
     for i in 1:n_segments(pwl_cost)
-        push!(out, (usdpermw[i+1] - usdpermw[i])/(mw[i+1] - mw[i]))
+        push!(out, (usd[i+1] - usd[i])/(mw[i+1] - mw[i]))
     end
     return out
 end
@@ -863,14 +863,13 @@ function costcurve2pmc(c::PWLCost)
 end
 costcurve2pmc(c::PolynomialCost) = coefficients(c)
 
+
 """
     add_cost_gen!(
         net::Network;
-        coeffs::Vector{<:Real}=Vector{Float64}(),
-        gen_id::Union{Missings.Missing,Int}= missing,
+        coeffs::PolynomialCost=PolynomialCost(Float64[]),
+        gen_id::Int,
         element_id::Int= -1,
-        model::Int=2,
-        ncost::Int=0,
     )
 
 Add new generator cost to a Network `net`. If `element_id` is not specified, a reasonable
@@ -879,7 +878,7 @@ value will be adopted. This method applies to polynomial costs.
 function add_cost_gen!(
     net::Network;
     coeffs::PolynomialCost=PolynomialCost(Float64[]),
-    gen_id::Union{Missings.Missing,Int}= missing,
+    gen_id::Int, # this the corresponding generator element id in the generator data.
     element_id::Int= -1,
 )
     model = 2
@@ -896,27 +895,21 @@ function add_cost_gen!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    if ismissing(gen_id)
-        push!(net.cost_gen, Any[coeffs, element_id, model, ncost])
+    push!(net.cost_gen, Any[coeffs, element_id, model, ncost])
+    gen_ids = net.gen[:element_id]
+    if gen_id in gen_ids
+        net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
     else
-        gen_ids = net.gen[:element_id]
-        if gen_id in gen_ids
-            push!(net.cost_gen, Any[coeffs, element_id, model, ncost])
-            net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
-        else
-            warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
-        end
+        warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
     end
 end
 
 """
     add_cost_load!(
         net::Network;
-        coeffs::Vector{<:Real}=Vector{Float64}(),
-        load_id::Union{Missings.Missing,Int}= missing,
+        coeffs::PolynomialCost=PolynomialCost(Float64[]),
+        load_id::Int,
         element_id::Int= -1,
-        model::Int=2,
-        ncost::Int=0,
     )
 
 Add new load cost to a Network `net`. If `element_id` is not specified, a reasonable
@@ -925,7 +918,7 @@ value will be adopted. This method applies to polynomial costs.
 function add_cost_load!(
     net::Network;
     coeffs::PolynomialCost=PolynomialCost(Float64[]),
-    load_id::Union{Missings.Missing,Int}= missing,
+    load_id::Int,
     element_id::Int= -1,
 )
     model = 2
@@ -942,31 +935,22 @@ function add_cost_load!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    if ismissing(load_id)
-        push!(net.cost_load, Any[coeffs, element_id, model, ncost])
+    push!(net.cost_load, Any[coeffs, element_id, model, ncost])
+    load_ids = net.gen[:element_id]
+    if load_id in load_ids
+        net.ps_load[Array{Bool}(net.ps_load[:element_id] .== load_id), :cost] = element_id
     else
-        load_ids = net.gen[:element_id]
-        if load_id in load_ids
-            push!(net.cost_load, Any[coeffs, element_id, model, ncost])
-            net.ps_load[
-                Array{Bool}(net.ps_load[:element_id] .== load_id),
-                :cost
-            ] = element_id
-        else
-            warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
-        end
+        warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
     end
 end
 
 
 """
     add_cost_gen!(
-        net::Network;
+        net::Network,
         pwl_cost::PWLCost;
-        gen_id::Union{NAtype,Int}= NA,
-        element_id::Int= -1
-        model::Int=1,
-        ncost::Int=0,
+        gen_id::Int;
+        element_id::Int= -1,
     )
 
 Add new generator cost to a Network `net`. If `element_id` is not specified, a reasonable
@@ -975,7 +959,7 @@ value will be adopted. This method applies to piecewise linear costs (1).
 function add_cost_gen!(
     net::Network,
     pwl_cost::PWLCost;
-    gen_id::Union{Missings.Missing,Int}=missing,
+    gen_id::Int,
     element_id::Int= -1,
 )
     model = 1
@@ -992,27 +976,21 @@ function add_cost_gen!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    if ismissing(gen_id)
-        push!(net.cost_gen, Any[pwl_cost, element_id, model, ncost])
+    push!(net.cost_gen, Any[pwl_cost, element_id, model, ncost])
+    gen_ids = net.gen[:element_id]
+    if gen_id in gen_ids
+        net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
     else
-        gen_ids = net.gen[:element_id]
-        if gen_id in gen_ids
-            push!(net.cost_gen, Any[pwl_cost, element_id, model, ncost])
-            net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
-        else
-            warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
-        end
+        warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
     end
 end
 
 """
     add_cost_load!(
         net::Network;
-        coeffs::Tuple{Vector}=([], []),
-        load_id::Union{NAtype,Int}= NA,
-        element_id::Int= -1,
-        model::Int=1,
-        ncost::Int=0,
+        pwl_cost::PWLCost,
+        load_id::Int;
+        element_id::Int=-1,
     )
 
 Add new load cost to a Network `net`. If `element_id` is not specified, a reasonable
@@ -1021,7 +999,7 @@ value will be adopted. This method applies to piecewise linear costs (1).
 function add_cost_load!(
     net::Network,
     pwl_cost::PWLCost;
-    load_id::Union{Missings.Missing, Int}=missing,
+    load_id::Int,
     element_id::Int=-1,
 )
     model = 1
@@ -1038,19 +1016,12 @@ function add_cost_load!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    if ismissing(load_id)
-        push!(net.cost_load, Any[pwl_cost, element_id, model, ncost])
+    push!(net.cost_load, Any[pwl_cost, element_id, model, ncost])
+    load_ids = net.gen[:element_id]
+    if load_id in load_ids
+        net.ps_load[Array{Bool}(net.ps_load[:element_id] .== load_id), :cost] = element_id
     else
-        load_ids = net.gen[:element_id]
-        if load_id in load_ids
-            push!(net.cost_load, Any[pwl_cost, element_id, model, ncost])
-            net.ps_load[
-                Array{Bool}(net.ps_load[:element_id] .== load_id),
-                :cost
-            ] = element_id
-        else
-            warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
-        end
+        warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
     end
 end
 

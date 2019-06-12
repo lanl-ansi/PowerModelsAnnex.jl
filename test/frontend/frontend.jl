@@ -12,7 +12,7 @@ using Missings
         @test PMA.is_convex(mw, cost)
     end
     @testset "PWL Cost" begin
-        cost = Float64[0, 1, 3, 6] * 1u"USDPerMWh"
+        cost = Float64[0, 1, 3, 6] * 1u"USD"
         mw = Float64[0, 1, 2, 3] * 1u"MWh"
         pwl_cost = PMA.PWLCost(mw=mw, cost=cost)
         @test PMA.n_segments(pwl_cost) == 3
@@ -22,7 +22,7 @@ using Missings
     end
 
     @testset "Conversion to PMC/MATPOWER" begin
-        cost = Float64[0, 1, 3, 6] * 1u"USDPerMWh"
+        cost = Float64[0, 1, 3, 6] * 1u"USD"
         mw = Float64[0, 1, 2, 3] * 1u"MWh"
         pwl_cost = PMA.PWLCost(mw=mw, cost=cost)
         cc_pmc = PMA.costcurve2pmc(pwl_cost)
@@ -45,10 +45,10 @@ end
         add_pi_load!(net)
         add_load!(net)
         add_line!(net)
-        example_pwl_cost = PMA.PWLCost(mw=[0, 1, 2] * 1.0u"MWh", cost=[0, 10, 20] * 1.0u"USDPerMWh")
-        ex_pwl_cost_2 = PMA.PWLCost(mw=[0, 2, 3] * 1.0u"MWh", cost=[0, 10, 20] * 1.0u"USDPerMWh")
-        add_cost_gen!(net, example_pwl_cost)
-        add_cost_load!(net, ex_pwl_cost_2)
+        example_pwl_cost = PMA.PWLCost(mw=[0, 1, 2] * 1.0u"MWh", cost=[0, 10, 20] * 1.0u"USD")
+        ex_pwl_cost_2 = PMA.PWLCost(mw=[0, 2, 3] * 1.0u"MWh", cost=[0, 10, 20] * 1.0u"USD")
+        add_cost_gen!(net, example_pwl_cost, gen_id = 6)
+        add_cost_load!(net, ex_pwl_cost_2, load_id = 1)
         @test size(PMA.lines(net))[1] == 21
         @test size(PMA.buses(net))[1] == 15
         @test size(PMA.generators(net))[1] == 6
@@ -58,6 +58,7 @@ end
         @test size(PMA.load_cost(net), 1) == 1
         build_pmc!(net)
         @test length(PMA.pmc(net)["bus"]) == 15
+        @test length(PMA.pmc(net)["gen"]) == 7 # 6 generators + 1 ps_load
         old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
         PMA.max_load_percent!(PMA.pmc(net), 50)
         @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
@@ -74,8 +75,8 @@ end
         add_load!(net)
         add_line!(net)
         ex_pol_curve = PMA.PolynomialCost(Float64[0, 10, 0])
-        add_cost_gen!(net, coeffs=ex_pol_curve)
-        add_cost_load!(net, coeffs=ex_pol_curve)
+        add_cost_gen!(net, coeffs=ex_pol_curve, gen_id = 6)
+        add_cost_load!(net, coeffs=ex_pol_curve, load_id = 1)
         @test size(PMA.lines(net))[1] == 21
         @test size(PMA.buses(net))[1] == 15
         @test size(PMA.generators(net))[1] == 6
@@ -85,32 +86,13 @@ end
         @test size(PMA.cost_load(net), 1) == 1
         build_pmc!(net)
         @test length(PMA.pmc(net)["bus"]) == 15
+        @test length(PMA.pmc(net)["gen"]) == 7 # 6 generators + 1 ps_load
         old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
         PMA.max_load_percent!(PMA.pmc(net), 50)
         @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
     end
 
     net = Network(case_files["case14"])
-    @test !PMA.infeasible(net)
-    @test size(PMA.bus(net))[1] == 14
-    add_bus!(net)
-    add_gen!(net)
-    add_ps_load!(net)
-    add_pi_load!(net)
-    add_load!(net)
-    add_line!(net)
-    add_cost_gen!(net)
-    add_cost_load!(net)
-    @test size(PMA.lines(net))[1] == 21
-    @test size(PMA.buses(net))[1] == 15
-    @test size(PMA.generators(net))[1] == 6
-    @test size(PMA.loads(net)["ps_load"])[1] == 1
-    @test size(PMA.loads(net)["pi_load"])[1] == 13
-    build_pmc!(net)
-    @test length(PMA.pmc(net)["bus"]) == 15
-    old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
-    PMA.max_load_percent!(PMA.pmc(net), 50)
-    @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
     pm = PMA.network2pmc(net)
     @test isa(pm, Dict)
     for k in ["branch", "gen", "load", "shunt", "storage", "bus"]

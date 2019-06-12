@@ -28,8 +28,7 @@ function network2pmc(
     stripunits!(net)
 
     gen_dict = net2pmc_gen(net; baseMVA=baseMVA)
-    last_gen = maximum(gen(net)[:element_id])
-    ps_load_dict = net2pmc_ps_load(net; baseMVA=baseMVA, id_offset=last_gen)
+    ps_load_dict = net2pmc_ps_load(net; baseMVA=baseMVA)
     outnet["gen"] = merge(gen_dict, ps_load_dict)
     outnet["branch"] = net2pmc_branch(net)
     outnet["bus"] = net2pmc_bus(net)
