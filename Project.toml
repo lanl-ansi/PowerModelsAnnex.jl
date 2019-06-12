@@ -2,7 +2,7 @@ name = "PowerModelsAnnex"
 uuid = "6e471128-d39d-5672-b02b-a742bd1b77ed"
 authors = ["Carleton Coffrin, et. al."]
 repo = "https://github.com/lanl-ansi/PowerModelsAnnex.jl"
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -15,15 +15,15 @@ PowerSystemsUnits = "c279aad7-7dc9-58d3-995b-109d3f5deb94"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
-DataFrames = "~0.11, ~0.12, ~0.13, ~0.14, ~0.15, ~0.16, ~0.17, ~0.18"
+DataFrames = ">= 0.11"
 InfrastructureModels = "~0.2"
 Ipopt = ">= 0.4"
 JuMP = "~0.19.1"
 Memento = "~0.10, ~0.11, ~0.12"
-Missings = "~0.2.6, ~0.3, ~0.4"
+Missings = ">= 0.2.6"
 PowerModels = "~0.12"
 PowerSystemsUnits = "~0.1"
-Unitful = "~0.7, ~0.8, ~0.9, ~0.10, ~0.11, ~0.12, ~0.13, ~0.14, ~0.15"
+Unitful = ">= 0.7"
 julia = "^1"
 
 [extras]
