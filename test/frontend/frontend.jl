@@ -93,6 +93,7 @@ end
     end
 
     net = Network(case_files["case14"])
+    @test !PMA.infeasible(net)
     pm = PMA.network2pmc(net)
     @test isa(pm, Dict)
     for k in ["branch", "gen", "load", "shunt", "storage", "bus"]
