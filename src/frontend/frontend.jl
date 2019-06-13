@@ -895,10 +895,10 @@ function add_cost_gen!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    push!(net.cost_gen, Any[coeffs, element_id, model, ncost])
     gen_ids = net.gen[:element_id]
     if gen_id in gen_ids
         net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
+        push!(net.cost_gen, Any[coeffs, element_id, model, ncost])
     else
         warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
     end
@@ -935,10 +935,10 @@ function add_cost_load!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    push!(net.cost_load, Any[coeffs, element_id, model, ncost])
     load_ids = net.gen[:element_id]
     if load_id in load_ids
         net.ps_load[Array{Bool}(net.ps_load[:element_id] .== load_id), :cost] = element_id
+        push!(net.cost_load, Any[coeffs, element_id, model, ncost])
     else
         warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
     end
@@ -976,10 +976,10 @@ function add_cost_gen!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    push!(net.cost_gen, Any[pwl_cost, element_id, model, ncost])
     gen_ids = net.gen[:element_id]
     if gen_id in gen_ids
         net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
+        push!(net.cost_gen, Any[pwl_cost, element_id, model, ncost])
     else
         warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
     end
@@ -1016,10 +1016,10 @@ function add_cost_load!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    push!(net.cost_load, Any[pwl_cost, element_id, model, ncost])
     load_ids = net.gen[:element_id]
     if load_id in load_ids
         net.ps_load[Array{Bool}(net.ps_load[:element_id] .== load_id), :cost] = element_id
+        push!(net.cost_load, Any[pwl_cost, element_id, model, ncost])
     else
         warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
     end
