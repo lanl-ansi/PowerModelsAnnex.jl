@@ -1,4 +1,4 @@
-function net2pmc_gen(net::Network; baseMVA=100, id_offset=0)
+function net2pmc_gen(net::Network; baseMVA=100)
     gen_dict = Dict{String, Any}()
     to_warn = Int[]
     for r in eachrow(gen(net))
@@ -6,10 +6,12 @@ function net2pmc_gen(net::Network; baseMVA=100, id_offset=0)
         if in("gen", keys(pmc(net))) && string(r[:element_id]) in keys(pmc(net)["gen"])
             old = pmc(net)["gen"][string(r[:element_id])]
         end
+        coeffs = [0.0]
         there = !isempty(old)
-        coeffs = there ? old["cost"] : [0.0]
-        coeffs = !ismissing(r[:cost]) ? costcurve2pmc(cost_gen(net)[:coeffs][r[:cost]]) : coeffs
-        gen_dict[string(r[:element_id] + id_offset)] = Dict(
+        if (!there && ismissing(r[:cost]))
+            push!(to_warn, r[:element_id])
+        end
+        gen_dict[string(r[:element_id])] = Dict(
             "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] : old["index"],
             "gen_bus" => (!there || !ismissing(r[:bus])) ? r[:bus] : old["gen_bus"],
             "pg" => (!there || !ismissing(r[:gen_p])) ? r[:gen_p] : old["pg"],
@@ -21,9 +23,9 @@ function net2pmc_gen(net::Network; baseMVA=100, id_offset=0)
             "startup" => (!there || !ismissing(r[:startup_cost])) ? r[:startup_cost] : old["startup"],
             "gen_status" => (!there || !ismissing(r[:status])) ? r[:status] : old["gen_status"],
             "ramp_10" => (!there || !ismissing(r[:ramp])) ? r[:ramp] : old["ramp_10"],
-            "cost" => (!there || !ismissing(r[:cost]) ) ? coeffs : old["cost"], # Default or old value
             "model" => !there  ? -1 : old["model"], # Default or old value
             "ncost" => !there  ? 0 : old["ncost"], # Default or old value
+            "cost" =>  !there ? coeffs : old["cost"], # Default or old value
             "qc1max" => 0.0,
             "qc2max" => 0.0,
             "mbase" => baseMVA,
@@ -38,44 +40,44 @@ function net2pmc_gen(net::Network; baseMVA=100, id_offset=0)
             "qc1min" => 0.0,
             "qc2min" => 0.0,
         )
-        if !there && isa(coeffs, PolynomialCost)
-            gen_dict["cost"] = coefficients(coeffs)
-            gen_dict["model"] = 2
-            gen_dict["ncost"] = n_cost(coeffs)
-        elseif !there && isa(coeffs, PWLCost)
-            mw_pts = ustrip.(mws(coeffs))
-            cost_pts = ustrip.(costs(coeffs))
-            mix = vec(hcat(mw_pts, cost_pts)') # This is the format used by MATPOWER and PowerModels
-            gen_dict["cost"] = mix
-            gen_dict["model"] = 1
-            gen_dict["ncost"] = length(mw_pts)
-        else
-            push!(to_warn, r[:element_id])
+        if !ismissing(r[:cost]) && !there
+            if  isa(cost_gen(net)[:coeffs][r[:cost]], PolynomialCost)
+                gen_dict[string(r[:element_id])]["cost"] = costcurve2pmc(cost_gen(net)[:coeffs][r[:cost]])
+                gen_dict[string(r[:element_id])]["model"] = 2
+                gen_dict[string(r[:element_id])]["ncost"] = n_cost(cost_gen(net)[:coeffs][r[:cost]])
+            elseif isa(cost_gen(net)[:coeffs][r[:cost]], PWLCost)
+                gen_dict[string(r[:element_id])]["cost"] = costcurve2pmc(cost_gen(net)[:coeffs][r[:cost]])
+                gen_dict[string(r[:element_id])]["model"] = 1
+                gen_dict[string(r[:element_id])]["ncost"] = Int(length(gen_dict[string(r[:element_id])]["cost"])/2)
+            end
         end
     end
     if !isempty(to_warn)
-        warn(LOGGER, "Using default costs for generator cost ids $to_warn")
+        warn(LOGGER, "There is no cost data for generator $to_warn). Default cost will be assigned.")
     end
     return gen_dict
 end
 
-function net2pmc_ps_load(net::Network; baseMVA=100, id_offset=0)
+function net2pmc_ps_load(net::Network; baseMVA=100)
     ps_load_dict = Dict{String, Any}()
     # Here we also need to add the price sensitive loads as generators
+    id_offset = maximum(gen(net)[:element_id])
     to_warn = Int[]
     for r in eachrow(ps_load(net))
         old = Dict()
-        if string(r[:element_id]) in keys(pmc(net)["gen"])
+        if string(r[:element_id] + id_offset) in keys(pmc(net)["gen"])
             old = pmc(net)["gen"][string(r[:element_id])]
         end
+        coeffs = [0.0]
         there = !isempty(old)
-        coeffs = there ? old["cost"] : [0.0]
-        coeffs = !ismissing(r[:cost]) ? cost_load(net)[:coeffs][r[:cost]] : coeffs
+        if (!there && ismissing(r[:cost]))
+            push!(to_warn, r[:element_id])
+        end
         ps_load_dict[string(r[:element_id] + id_offset)] = Dict(
             "index" => (!there || !ismissing(r[:element_id])) ? r[:element_id] + id_offset : old["index"],
             "gen_bus" => (!there || !ismissing(r[:bus])) ? r[:bus] : old["gen_bus"],
             "pmax" => (!there || !ismissing(r[:load_max])) ? r[:load_max] : old["pmax"],
-            "cost" => (!there || !ismissing(r[:cost]) ) ? costcurve2pmc(cost_load(net)[:coeffs][r[:cost]]) : old["cost"], # Default or old value
+            "cost" => !there ? coeffs : old["cost"], # Default or old value
             "model" => !there  ? -1 : old["model"], # Default or old value
             "ncost" => !there  ? 0 : old["ncost"], # Default or old value
             "gen_status" => (!there || !ismissing(r[:status])) ? r[:status] : old["gen_status"],
@@ -101,30 +103,28 @@ function net2pmc_ps_load(net::Network; baseMVA=100, id_offset=0)
             "qc2min" => 0.0,
         )
         # TODO: Check the signs of ps load costs
-        if !there && isa(coeffs, PolynomialCost)
-            # Load is negative generation. By serving load, the total cost receives a negative contribution
-            # due to the amount payed by the utility.
-            ps_load_dict["cost"] = -coefficients(coeffs) # The cost curve has to be flipped along the x axis.
-            aux = ps_load_dict["pmin"]
-            ps_load_dict["pmin"] = -gen_dict["pmax"] # The cost curve has to be flipped along the y axis.
-            ps_load_dict["pmax"] = -aux
-            ps_load_dict["model"] = 2
-            ps_load_dict["ncost"] = n_cost(coeffs)
-        elseif !there && isa(coeffs, PWLCost)
-            mw_pts = -ustrip.(mws(coeffs)) # The mws have to be flipped.
-            cost_pts = -ustrip.(costs(coeffs)) # The cost has to be flipped too. It's a cost for the utility, profit for generators.
-            mix = vec(hcat(mw_pts, cost_pts)') # This is the format used by MATPOWER and PowerModels
-            ps_load_dict["cost"] = mix
-            ps_load_dict["model"] = 1
-            ps_load_dict["ncost"] = length(mw_pts)
-            ps_load_dict["pmin"] = -ps_load_dict["pmax"] # The cost curve has to be flipped along the y axis. Load is negative generation
-            ps_load_dict["pmax"] = 0.0
-        else
-            push!(to_warn, r[:element_id])
+        if !ismissing(r[:cost]) && !there
+            if isa(cost_load(net)[:coeffs][r[:cost]], PolynomialCost)
+                # Load is negative generation. By serving load, the total cost receives a negative contribution
+                # due to the amount payed by the utility.
+                ps_load_dict[string(r[:element_id] + id_offset)]["cost"] = -costcurve2pmc(cost_load(net)[:coeffs][r[:cost]]) # The cost curve has to be flipped along the x axis.
+                aux = ps_load_dict[string(r[:element_id] + id_offset)]["pmin"]
+                ps_load_dict[string(r[:element_id] + id_offset)]["pmin"] = -ps_load_dict[string(r[:element_id] + id_offset)]["pmax"] # The cost curve has to be flipped along the y axis.
+                ps_load_dict[string(r[:element_id] + id_offset)]["pmax"] = -aux
+                ps_load_dict[string(r[:element_id] + id_offset)]["model"] = 2
+                ps_load_dict[string(r[:element_id] + id_offset)]["ncost"] = n_cost(cost_load(net)[:coeffs][r[:cost]])
+            elseif isa(cost_load(net)[:coeffs][r[:cost]], PWLCost)
+                ps_load_dict[string(r[:element_id] + id_offset)]["cost"] = -costcurve2pmc(cost_load(net)[:coeffs][r[:cost]])
+                aux = ps_load_dict[string(r[:element_id] + id_offset)]["pmin"]
+                ps_load_dict[string(r[:element_id] + id_offset)]["pmin"] = -ps_load_dict[string(r[:element_id] + id_offset)]["pmax"] # The cost curve has to be flipped along the y axis.
+                ps_load_dict[string(r[:element_id] + id_offset)]["pmax"] = -aux
+                ps_load_dict[string(r[:element_id] + id_offset)]["model"] = 1
+                ps_load_dict[string(r[:element_id] + id_offset)]["ncost"] = Int(length(ps_load_dict[string(r[:element_id] + id_offset)]["cost"])/2)
+            end
         end
     end
     if !isempty(to_warn)
-        warn(LOGGER, "Used default costs for ps load cost ids $to_warn.")
+        warn(LOGGER, "There is no cost data for ps_load $to_warn). Default cost will be assigned.")
     end
     return ps_load_dict
 end
