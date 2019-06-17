@@ -4,8 +4,6 @@ using Missings
 using Unitful
 using PowerSystemsUnits
 
-Unitful.register(PowerSystemsUnits)
-
 export
     Network,
     add_bus!,

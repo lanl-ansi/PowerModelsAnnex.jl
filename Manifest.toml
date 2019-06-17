@@ -190,10 +190,10 @@ uuid = "c36e90e8-916a-50a6-bd94-075b64ef4655"
 version = "0.12.0"
 
 [[PowerSystemsUnits]]
-deps = ["Compat", "Missings", "Unitful"]
-git-tree-sha1 = "7cd8c91af0de4b7ce4881e85dea4110327538ae6"
+deps = ["Dates", "Statistics", "Unitful"]
+git-tree-sha1 = "aa9d83c87359c6d913e27fd893aba69941b012fe"
 uuid = "c279aad7-7dc9-58d3-995b-109d3f5deb94"
-version = "0.1.0"
+version = "0.2.0"
 
 [[Printf]]
 deps = ["Unicode"]
