@@ -270,8 +270,8 @@ end
 
 
 """
-Given a JuMP model and a PowerModels network data structure,
-Builds an QC-OPF formulation of the given data and returns the JuMP model
+Given the JuMP model and the PowerModels network data structure,
+Builds the QC-OPF formulation of the given data and returns the JuMP model
 Implementation provided by @sidhant172
 """
 function post_qc_opf(data::Dict{String,Any}, model=Model())
@@ -345,7 +345,7 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
     @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
     @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
 
-    # generation pg an qg
+    # generation pg and qg
     @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
     @variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
 
@@ -414,16 +414,18 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
         # end of relaxation cos
 
         ##### relaxation trilinear wr
-        wr_val = [
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmin"] * cos_min[bp]
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmin"] * cos_max[bp]
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmax"] * cos_min[bp]
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmax"] * cos_max[bp]
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmin"] * cos_min[bp]
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmin"] * cos_max[bp]
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"] * cos_min[bp]
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"] * cos_max[bp]
+        val = [
+            ref[:bus][i]["vmin"] * ref[:bus][j]["vmin"]
+            ref[:bus][i]["vmin"] * ref[:bus][j]["vmin"]
+            ref[:bus][i]["vmin"] * ref[:bus][j]["vmax"]
+            ref[:bus][i]["vmin"] * ref[:bus][j]["vmax"]
+            ref[:bus][i]["vmax"] * ref[:bus][j]["vmin"]
+            ref[:bus][i]["vmax"] * ref[:bus][j]["vmin"]
+            ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"]
+            ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"]
         ]
+
+        wr_val = val .* [cos_min[bp], cos_max[bp], cos_min[bp], cos_max[bp], cos_min[bp], cos_max[bp], cos_min[bp], cos_max[bp]]
 
         @constraint(model, wr[bp] == sum(wr_val[ii]*lambda_wr[bp,ii] for ii in 1:8))
         @constraint(model, vm[i] == (lambda_wr[bp,1] + lambda_wr[bp,2] + lambda_wr[bp,3] + lambda_wr[bp,4])*ref[:bus][i]["vmin"] +
@@ -436,16 +438,9 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
         #### end of relaxation trilinear wr
 
         ##### relaxation trilinear wi
-        wi_val = [
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmin"] * sin(buspair["angmin"])
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmin"] * sin(buspair["angmax"])
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmax"] * sin(buspair["angmin"])
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmax"] * sin(buspair["angmax"])
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmin"] * sin(buspair["angmin"])
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmin"] * sin(buspair["angmax"])
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"] * sin(buspair["angmin"])
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"] * sin(buspair["angmax"])
-        ]
+        sin_min = sin(buspair["angmin"])
+        sin_max = sin(buspair["angmax"])
+        wi_val = val .* [sin_min, sin_max, sin_min, sin_max, sin_min, sin_max, sin_min, sin_max]
 
         @constraint(model, wi[bp] == sum(wi_val[ii]*lambda_wi[bp,ii] for ii in 1:8))
         @constraint(model, vm[i] == (lambda_wi[bp,1] + lambda_wi[bp,2] + lambda_wi[bp,3] + lambda_wi[bp,4])*ref[:bus][i]["vmin"] +
@@ -457,18 +452,7 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
         @constraint(model, sum(lambda_wi[bp,ii] for ii in 1:8) == 1)
         #### end of relaxation trilinear wi
 
-        # relaxation tighten vv
-        val = [
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmin"]
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmin"]
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmax"]
-            ref[:bus][i]["vmin"] * ref[:bus][j]["vmax"]
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmin"]
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmin"]
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"]
-            ref[:bus][i]["vmax"] * ref[:bus][j]["vmax"]
-        ]
-
+        # relaxation tighten vv - tying constraint
         @constraint(model, sum(lambda_wr[bp,ii]*val[ii] - lambda_wi[bp,ii]*val[ii] for ii in 1:8) == 0)
         # end of relaxation tighten vv
 
@@ -486,9 +470,12 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
         st = vtlb + vtub
 
         # Voltage Product Relaxation Upperbound
-        @constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtub*cos(d)*st*w[i] - vfub*cos(d)*sf*w[j] >=  vfub*vtub*cos(d)*(vflb*vtlb - vfub*vtub))
-        @constraint(model, sf*st*(cos(phi)*wr[(i,j)] + sin(phi)*wi[(i,j)]) - vtlb*cos(d)*st*w[i] - vflb*cos(d)*sf*w[j] >= -vflb*vtlb*cos(d)*(vflb*vtlb - vfub*vtub))
+        @constraint(model, sf*st*(cos(phi)*wr[bp] + sin(phi)*wi[bp]) - vtub*cos(d)*st*w[i] - vfub*cos(d)*sf*w[j] >=  vfub*vtub*cos(d)*(vflb*vtlb - vfub*vtub))
+        @constraint(model, sf*st*(cos(phi)*wr[bp] + sin(phi)*wi[bp]) - vtlb*cos(d)*st*w[i] - vflb*cos(d)*sf*w[j] >= -vflb*vtlb*cos(d)*(vflb*vtlb - vfub*vtub))
     end
+
+    # end of QC tri-form voltage constraint
+    # end of voltage constraints
 
 
    for (i,branch) in ref[:branch]
@@ -518,10 +505,6 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
             @constraint(model, cm[bp] == (g^2 + b^2)*(w_fr/tm^2 + w_to - 2*(tr*wr[bp] + ti*wi[bp])/tm^2) - ym_sh_sqr*(w_fr/tm^2) + 2*(g_fr*p_fr - b_fr*q_fr))
         end
     end
-
-    # end of QC tri-form voltage constraint
-    # end of constraint voltage
-
 
     # constraint theta ref
     for i in keys(ref[:ref_buses])
