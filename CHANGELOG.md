@@ -5,6 +5,7 @@ PowerModelsAnnex.jl Change Log
 - nothing
 
 ### v0.2.3
+- Updates for PowerSystemsUnits
 - Fixes for Frontend (#53)
 
 ### v0.2.2
