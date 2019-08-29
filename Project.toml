@@ -16,9 +16,9 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
 DataFrames = ">= 0.19"
-InfrastructureModels = "~0.2"
+InfrastructureModels = "~0.2, ~0.3"
 Ipopt = ">= 0.4"
-JuMP = "~0.19.1"
+JuMP = "~0.19.1, ~0.20"
 Memento = "~0.10, ~0.11, ~0.12"
 Missings = ">= 0.2.6"
 PowerModels = "~0.12"
