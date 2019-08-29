@@ -41,12 +41,12 @@ function net2pmc_gen(net::Network; baseMVA=100)
             "qc2min" => 0.0,
         )
         if !ismissing(r[:cost]) && !there
-            if  isa(cost_gen(net)[:coeffs][r[:cost]], PolynomialCost)
-                gen_dict[string(r[:element_id])]["cost"] = costcurve2pmc(cost_gen(net)[:coeffs][r[:cost]])
+            if  isa(cost_gen(net)[r[:cost], :coeffs], PolynomialCost)
+                gen_dict[string(r[:element_id])]["cost"] = costcurve2pmc(cost_gen(net)[r[:cost], :coeffs])
                 gen_dict[string(r[:element_id])]["model"] = 2
-                gen_dict[string(r[:element_id])]["ncost"] = n_cost(cost_gen(net)[:coeffs][r[:cost]])
-            elseif isa(cost_gen(net)[:coeffs][r[:cost]], PWLCost)
-                gen_dict[string(r[:element_id])]["cost"] = costcurve2pmc(cost_gen(net)[:coeffs][r[:cost]])
+                gen_dict[string(r[:element_id])]["ncost"] = n_cost(cost_gen(net)[r[:cost], :coeffs])
+            elseif isa(cost_gen(net)[r[:cost], :coeffs], PWLCost)
+                gen_dict[string(r[:element_id])]["cost"] = costcurve2pmc(cost_gen(net)[r[:cost], :coeffs])
                 gen_dict[string(r[:element_id])]["model"] = 1
                 gen_dict[string(r[:element_id])]["ncost"] = Int(length(gen_dict[string(r[:element_id])]["cost"])/2)
             end
@@ -61,7 +61,7 @@ end
 function net2pmc_ps_load(net::Network; baseMVA=100)
     ps_load_dict = Dict{String, Any}()
     # Here we also need to add the price sensitive loads as generators
-    id_offset = maximum(gen(net)[:element_id])
+    id_offset = maximum(gen(net)[!, :element_id])
     to_warn = Int[]
     for r in eachrow(ps_load(net))
         old = Dict()
@@ -104,17 +104,18 @@ function net2pmc_ps_load(net::Network; baseMVA=100)
         )
         # TODO: Check the signs of ps load costs
         if !ismissing(r[:cost]) && !there
-            if isa(cost_load(net)[:coeffs][r[:cost]], PolynomialCost)
+            if isa(cost_load(net)[r[:cost], :coeffs], PolynomialCost)
                 # Load is negative generation. By serving load, the total cost receives a negative contribution
                 # due to the amount payed by the utility.
-                ps_load_dict[string(r[:element_id] + id_offset)]["cost"] = -costcurve2pmc(cost_load(net)[:coeffs][r[:cost]]) # The cost curve has to be flipped along the x axis.
+                # The cost curve has to be flipped along the x axis.
+                ps_load_dict[string(r[:element_id] + id_offset)]["cost"] = -costcurve2pmc(cost_load(net)[r[:cost], :coeffs])
                 aux = ps_load_dict[string(r[:element_id] + id_offset)]["pmin"]
                 ps_load_dict[string(r[:element_id] + id_offset)]["pmin"] = -ps_load_dict[string(r[:element_id] + id_offset)]["pmax"] # The cost curve has to be flipped along the y axis.
                 ps_load_dict[string(r[:element_id] + id_offset)]["pmax"] = -aux
                 ps_load_dict[string(r[:element_id] + id_offset)]["model"] = 2
-                ps_load_dict[string(r[:element_id] + id_offset)]["ncost"] = n_cost(cost_load(net)[:coeffs][r[:cost]])
-            elseif isa(cost_load(net)[:coeffs][r[:cost]], PWLCost)
-                ps_load_dict[string(r[:element_id] + id_offset)]["cost"] = -costcurve2pmc(cost_load(net)[:coeffs][r[:cost]])
+                ps_load_dict[string(r[:element_id] + id_offset)]["ncost"] = n_cost(cost_load(net)[r[:cost], :coeffs])
+            elseif isa(cost_load(net)[r[:cost], :coeffs], PWLCost)
+                ps_load_dict[string(r[:element_id] + id_offset)]["cost"] = -costcurve2pmc(cost_load(net)[r[:cost], :coeffs])
                 aux = ps_load_dict[string(r[:element_id] + id_offset)]["pmin"]
                 ps_load_dict[string(r[:element_id] + id_offset)]["pmin"] = -ps_load_dict[string(r[:element_id] + id_offset)]["pmax"] # The cost curve has to be flipped along the y axis.
                 ps_load_dict[string(r[:element_id] + id_offset)]["pmax"] = -aux

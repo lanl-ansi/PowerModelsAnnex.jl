@@ -278,7 +278,7 @@ end
 
 function Network(pmc::Dict)
     gen_df = build_df_from_pmc(gen_columns, pmc["gen"])
-    gen_df[:cost] = collect(1:size(gen_df)[1]) # Since the only place where costs are stored
+    gen_df[!, :cost] = collect(1:size(gen_df)[1]) # Since the only place where costs are stored
     # in the pmc is in pmc["gen"], the order should automatically be preserved.
     allowmissing!(gen_df)
     # When importing data from matpower we need to convert the generator costs to the data
@@ -308,7 +308,7 @@ function Network(pmc::Dict)
         warn(LOGGER, "Unable to set the costs for keys $to_warn. Please check.")
     end
     cost_gen_df = build_df_from_pmc(cost_columns, aux)
-    cost_gen_df[:element_id] = collect(1:size(cost_gen_df)[1])
+    cost_gen_df[!, :element_id] = collect(1:size(cost_gen_df)[1])
     allowmissing!(cost_gen_df)
     pi_load_df = build_df_from_pmc(pi_load_columns, pmc["load"])
     allowmissing!(pi_load_df)
@@ -345,30 +345,30 @@ will convert it to a type representing the units u"MWh"). See PowerSystemsUnits.
 for more information. We are assuming energy units as opposed to power units.
 """
 function applyunits!(net::Network)
-    net.pi_load[:load_p] = Array{UnitfulMissing}(net.pi_load[:load_p]*u"MWh")
-    net.pi_load[:load_q] = Array{UnitfulMissing}(net.pi_load[:load_q]*u"MVARh")
-    net.ps_load[:load] = Array{UnitfulMissing}(net.ps_load[:load]*u"MWh")
-    net.ps_load[:load_max] = Array{UnitfulMissing}(net.ps_load[:load_max]*u"MWh")
-    net.gen[:gen_p] = Array{UnitfulMissing}(net.gen[:gen_p]*u"MWh")
-    net.gen[:p_max] = Array{UnitfulMissing}(net.gen[:p_max]*u"MWh")
-    net.gen[:p_min] = Array{UnitfulMissing}(net.gen[:p_min]*u"MWh")
-    net.gen[:gen_q] = Array{UnitfulMissing}(net.gen[:gen_q]*u"MVARh")
-    net.gen[:q_max] = Array{UnitfulMissing}(net.gen[:q_max]*u"MVARh")
-    net.gen[:q_min] = Array{UnitfulMissing}(net.gen[:q_min]*u"MVARh")
-    net.gen[:startup_cost] = Array{UnitfulMissing}(net.gen[:startup_cost]*u"USD")
-    net.gen[:ramp] = Array{UnitfulMissing}(net.gen[:ramp]*u"MWh/minute")
-    net.bus[:base_kv] = Array{UnitfulMissing}(net.bus[:base_kv]*u"kV")
+    net.pi_load[!, :load_p] = Array{UnitfulMissing}(net.pi_load[!, :load_p]*u"MWh")
+    net.pi_load[!, :load_q] = Array{UnitfulMissing}(net.pi_load[!, :load_q]*u"MVARh")
+    net.ps_load[!, :load] = Array{UnitfulMissing}(net.ps_load[!, :load]*u"MWh")
+    net.ps_load[!, :load_max] = Array{UnitfulMissing}(net.ps_load[!, :load_max]*u"MWh")
+    net.gen[!, :gen_p] = Array{UnitfulMissing}(net.gen[!, :gen_p]*u"MWh")
+    net.gen[!, :p_max] = Array{UnitfulMissing}(net.gen[!, :p_max]*u"MWh")
+    net.gen[!, :p_min] = Array{UnitfulMissing}(net.gen[!, :p_min]*u"MWh")
+    net.gen[!, :gen_q] = Array{UnitfulMissing}(net.gen[!, :gen_q]*u"MVARh")
+    net.gen[!, :q_max] = Array{UnitfulMissing}(net.gen[!, :q_max]*u"MVARh")
+    net.gen[!, :q_min] = Array{UnitfulMissing}(net.gen[!, :q_min]*u"MVARh")
+    net.gen[!, :startup_cost] = Array{UnitfulMissing}(net.gen[!, :startup_cost]*u"USD")
+    net.gen[!, :ramp] = Array{UnitfulMissing}(net.gen[!, :ramp]*u"MWh/minute")
+    net.bus[!, :base_kv] = Array{UnitfulMissing}(net.bus[!, :base_kv]*u"kV")
     #TODO: add cost units
-    net.line[:b_to] = Array{UnitfulMissing}(net.line[:b_to]*u"S")
-    net.line[:b_fr] = Array{UnitfulMissing}(net.line[:b_fr]*u"S")
-    net.line[:g_to] = Array{UnitfulMissing}(net.line[:g_to]*u"S")
-    net.line[:g_fr] = Array{UnitfulMissing}(net.line[:g_fr]*u"S")
-    net.line[:rate_a] = Array{UnitfulMissing}(net.line[:rate_a]*u"A")
-    net.line[:rate_b] = Array{UnitfulMissing}(net.line[:rate_b]*u"A")
-    net.line[:rate_c] = Array{UnitfulMissing}(net.line[:rate_c]*u"A")
-    net.line[:resistance] = Array{UnitfulMissing}(net.line[:resistance]*u"Ω")
-    net.line[:reactance] = Array{UnitfulMissing}(net.line[:reactance]*u"Ω")
-    net.line[:susceptance] = Array{UnitfulMissing}(net.line[:susceptance]*u"S")
+    net.line[!, :b_to] = Array{UnitfulMissing}(net.line[!, :b_to]*u"S")
+    net.line[!, :b_fr] = Array{UnitfulMissing}(net.line[!, :b_fr]*u"S")
+    net.line[!, :g_to] = Array{UnitfulMissing}(net.line[!, :g_to]*u"S")
+    net.line[!, :g_fr] = Array{UnitfulMissing}(net.line[!, :g_fr]*u"S")
+    net.line[!, :rate_a] = Array{UnitfulMissing}(net.line[!, :rate_a]*u"A")
+    net.line[!, :rate_b] = Array{UnitfulMissing}(net.line[!, :rate_b]*u"A")
+    net.line[!, :rate_c] = Array{UnitfulMissing}(net.line[!, :rate_c]*u"A")
+    net.line[!, :resistance] = Array{UnitfulMissing}(net.line[!, :resistance]*u"Ω")
+    net.line[!, :reactance] = Array{UnitfulMissing}(net.line[!, :reactance]*u"Ω")
+    net.line[!, :susceptance] = Array{UnitfulMissing}(net.line[!, :susceptance]*u"S")
 end
 
 function _stripunits!(elements::DataFrame, columns::AbstractVector{<:Symbol})
@@ -380,20 +380,20 @@ end
 function stripunits!(net::Network)
     # Incomplete method to be extended as we annotate units
     for k in [:load_p, :load_q]
-        net.pi_load[k] = Array{Union{Missings.Missing,Float64}}(
-            fustrip(net.pi_load[k])
+        net.pi_load[!, k] = Array{Union{Missings.Missing,Float64}}(
+            fustrip(net.pi_load[!, k])
         )
     end
     for k in [:load, :load_max]
-        net.ps_load[k] = Array{Union{Missings.Missing,Float64}}(fustrip(net.ps_load[k]))
+        net.ps_load[!, k] = Array{Union{Missings.Missing,Float64}}(fustrip(net.ps_load[!, k]))
     end
     for col in [:gen_p, :p_max, :p_min, :gen_q, :q_max, :q_min, :startup_cost, :ramp]
-        net.gen[col] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[col]))
+        net.gen[!, col] = Array{Union{Missings.Missing,Float64}}(fustrip(net.gen[!, col]))
     end
-    net.bus[:base_kv] = Array{Union{Missings.Missing,Float64}}(fustrip(net.bus[:base_kv]))
+    net.bus[!, :base_kv] = Array{Union{Missings.Missing,Float64}}(fustrip(net.bus[!, :base_kv]))
     #TODO: strip cost units
     for col in [:b_to, :b_fr, :g_to, :g_fr, :rate_a, :rate_b, :rate_c, :resistance, :reactance, :susceptance]
-        net.line[col] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[col]))
+        net.line[!, col] = Array{Union{Missings.Missing,Float64}}(fustrip(net.line[!, col]))
     end
 end
 
@@ -436,7 +436,7 @@ function add_bus!(
     area::Union{Missings.Missing,Int}=missing,
     zone::Union{Missings.Missing,Int}=missing,
 )
-    ids = net.bus[:element_id]
+    ids = net.bus[!, :element_id]
     if element_id == -1 || element_id in ids
         control = false
         if element_id in ids
@@ -502,7 +502,7 @@ function add_gen!(
     status::Int= 1,
     ramp::Union{Missings.Missing,<:Number}=missing,
 )
-    ids = net.gen[:element_id]
+    ids = net.gen[!, :element_id]
     if element_id == -1 || element_id in ids
         control = false
         if element_id in ids
@@ -552,7 +552,7 @@ function add_pi_load!(
     load_q::Union{Missings.Missing,<:Number}=missing,
     status::Int=1,
 )
-    ids = net.pi_load[:element_id]
+    ids = net.pi_load[!, :element_id]
     if element_id == -1 || element_id in ids
         control = false
         if element_id in ids && element_id != -1
@@ -624,7 +624,7 @@ function add_ps_load!(
     cost::Union{Missings.Missing,Int}=missing,
     status::Int=1,
 )
-    ids = net.ps_load[:element_id]
+    ids = net.ps_load[!, :element_id]
     if element_id == -1 || element_id in ids
         control = false
         if element_id in ids && element_id != -1
@@ -686,7 +686,7 @@ function add_line!(
     q_to::Float64=0.0,
     q_from::Float64=0.0,
 )
-    ids = net.line[:element_id]
+    ids = net.line[!, :element_id]
     if element_id == -1 || element_id in ids
         control = false
         if element_id in ids
@@ -881,7 +881,7 @@ function add_cost_gen!(
 )
     model = 2
     ncost = n_cost(coeffs)
-    ids = net.cost_gen[:element_id]
+    ids = net.cost_gen[!, :element_id]
     if element_id == -1 || element_id in ids
         control = false
         if element_id in ids && element_id != -1
@@ -893,9 +893,9 @@ function add_cost_gen!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    gen_ids = net.gen[:element_id]
+    gen_ids = net.gen[!, :element_id]
     if gen_id in gen_ids
-        net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
+        net.gen[Array{Bool}(net.gen[!, :element_id] .== gen_id), :cost] .= element_id
         push!(net.cost_gen, Any[coeffs, element_id, model, ncost])
     else
         warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
@@ -921,7 +921,7 @@ function add_cost_load!(
 )
     model = 2
     ncost = n_cost(coeffs)
-    ids = net.cost_load[:element_id]
+    ids = net.cost_load[!, :element_id]
     if element_id == -1 || element_id in ids
         control = false
         if element_id in ids && element_id != -1
@@ -933,9 +933,9 @@ function add_cost_load!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    load_ids = net.gen[:element_id]
+    load_ids = net.gen[!, :element_id]
     if load_id in load_ids
-        net.ps_load[Array{Bool}(net.ps_load[:element_id] .== load_id), :cost] = element_id
+        net.ps_load[Array{Bool}(net.ps_load[!, :element_id] .== load_id), :cost] .= element_id
         push!(net.cost_load, Any[coeffs, element_id, model, ncost])
     else
         warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
@@ -962,7 +962,7 @@ function add_cost_gen!(
 )
     model = 1
     ncost = length(mws(pwl_cost))
-    ids = net.cost_gen[:element_id]
+    ids = net.cost_gen[!, :element_id]
     if element_id == -1 || element_id in ids
         control = false
         if element_id in ids && element_id != -1
@@ -974,9 +974,9 @@ function add_cost_gen!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    gen_ids = net.gen[:element_id]
+    gen_ids = net.gen[!, :element_id]
     if gen_id in gen_ids
-        net.gen[Array{Bool}(net.gen[:element_id] .== gen_id), :cost] = element_id
+        net.gen[Array{Bool}(net.gen[!, :element_id] .== gen_id), :cost] .= element_id
         push!(net.cost_gen, Any[pwl_cost, element_id, model, ncost])
     else
         warn(LOGGER, "A generator with id $gen_id does not exist. Cost will not be created.")
@@ -1002,7 +1002,7 @@ function add_cost_load!(
 )
     model = 1
     ncost = length(mws(pwl_cost))
-    ids = net.cost_load[:element_id]
+    ids = net.cost_load[!, :element_id]
     if element_id == -1 || element_id in ids
         control = false
         if element_id in ids && element_id != -1
@@ -1014,9 +1014,9 @@ function add_cost_load!(
             warn(LOGGER, w * "Using id = $element_id instead.")
         end
     end
-    load_ids = net.gen[:element_id]
+    load_ids = net.gen[!, :element_id]
     if load_id in load_ids
-        net.ps_load[Array{Bool}(net.ps_load[:element_id] .== load_id), :cost] = element_id
+        net.ps_load[Array{Bool}(net.ps_load[!, :element_id] .== load_id), :cost] .= element_id
         push!(net.cost_load, Any[pwl_cost, element_id, model, ncost])
     else
         warn(LOGGER, "A PS load with id $load_id does not exist. Cost will not be created.")
@@ -1194,7 +1194,7 @@ Check if the total demand can be satisfied by the generators. Returns `true` in 
 solution is possible.
 """
 function infeasible(net::Network)
-    tot_load = sum(pi_load(net)[:load_p])
-    max_gen = sum(gen(net)[:p_max])
+    tot_load = sum(pi_load(net)[!, :load_p])
+    max_gen = sum(gen(net)[!, :p_max])
     return tot_load > max_gen
 end

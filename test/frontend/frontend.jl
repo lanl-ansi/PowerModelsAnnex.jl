@@ -100,9 +100,9 @@ end
         @test k in keys(pm)
     end
     PMA.applyunits!(net)
-    @test isa(net.pi_load[:load_p], Array{Union{<:Unitful.Quantity, Missings.Missing}})
+    @test isa(net.pi_load[!, :load_p], Array{Union{<:Unitful.Quantity, Missings.Missing}})
     PMA.stripunits!(net)
-    @test isa(net.pi_load[:load_p], Array{Union{Missings.Missing,Float64}})
+    @test isa(net.pi_load[!, :load_p], Array{Union{Missings.Missing,Float64}})
     @test_throws UndefVarError applyunits!(Dict{String, AbstractArray}())
     @test_throws UndefVarError stripunits!(Dict{String, AbstractArray}())
 end
