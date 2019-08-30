@@ -62,6 +62,7 @@ end
         old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
         PMA.max_load_percent!(PMA.pmc(net), 50)
         @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
+        @test converged(net) == false
     end
 
 
@@ -90,6 +91,7 @@ end
         old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
         PMA.max_load_percent!(PMA.pmc(net), 50)
         @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
+        @test converged(net) == false
     end
 
     net = Network(case_files["case14"])
@@ -105,4 +107,15 @@ end
     @test isa(net.pi_load[!, :load_p], Array{Union{Missings.Missing,Float64}})
     @test_throws UndefVarError applyunits!(Dict{String, AbstractArray}())
     @test_throws UndefVarError stripunits!(Dict{String, AbstractArray}())
+
+    @test converged(net) == false
+    res = run_dc_opf(
+        PMA.pmc(net),
+        with_optimizer(Ipopt.Optimizer, print_level=0),
+        setting=Dict("output" => Dict("duals" => true))
+    )
+    for k in keys(res)
+        PMA.results(net)[k] = res[k]
+    end
+    @test converged(net) == true
 end
