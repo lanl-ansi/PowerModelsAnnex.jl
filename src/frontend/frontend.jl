@@ -1,5 +1,5 @@
 using DataFrames
-using MathOptInterface: OPTIMAL, LOCALLY_SOLVED
+using MathOptInterface: OPTIMAL, LOCALLY_SOLVED, ALMOST_OPTIMAL, ALMOST_LOCALLY_SOLVED
 using Memento
 using Missings
 using Unitful
@@ -1140,7 +1140,7 @@ no OPF was ran).
 function converged(net::Network)
     isempty(results(net)) && return false
     status = results(net)["termination_status"]
-    return status == OPTIMAL || status == LOCALLY_SOLVED
+    return status in (OPTIMAL, LOCALLY_SOLVED, ALMOST_OPTIMAL, ALMOST_LOCALLY_SOLVED)
 end
 
 """
