@@ -4,6 +4,13 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.2.5
+- Updates to frontend for MOI status values (#60)
+
+### v0.2.4
+- Updates for JuMP v0.20 and Julia v1.2 (#59)
+- Resolve Dataframes deprecations (#58)
+
 ### v0.2.3
 - Updates for PowerSystemsUnits
 - Fixes for Frontend (#53)
