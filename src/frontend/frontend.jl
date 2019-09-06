@@ -1,4 +1,5 @@
 using DataFrames
+using MathOptInterface: OPTIMAL, LOCALLY_SOLVED, ALMOST_OPTIMAL, ALMOST_LOCALLY_SOLVED
 using Memento
 using Missings
 using Unitful
@@ -1133,12 +1134,13 @@ end
 """
     converged(net::Network)
 
-Return `true` if an OPF was ran and successfully converged, `false` otherwise (inclunding if
+Return `true` if an OPF was ran and successfully converged, `false` otherwise (including if
 no OPF was ran).
 """
 function converged(net::Network)
     isempty(results(net)) && return false
-    return results(net)["status"] == :LocalInfeasible ? false : true
+    status = results(net)["termination_status"]
+    return status in (OPTIMAL, LOCALLY_SOLVED, ALMOST_OPTIMAL, ALMOST_LOCALLY_SOLVED)
 end
 
 """
