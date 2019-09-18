@@ -59,9 +59,18 @@ end
         build_pmc!(net)
         @test length(PMA.pmc(net)["bus"]) == 15
         @test length(PMA.pmc(net)["gen"]) == 7 # 6 generators + 1 ps_load
-        old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
-        PMA.max_load_percent!(PMA.pmc(net), 50)
-        @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
+
+        @testset "max_load_percent!" begin
+            old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
+            PMA.max_load_percent!(PMA.pmc(net), 50)
+            @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
+
+            old_line_rate = PMA.line(net)[1, :rate_a]
+            PMA.max_load_percent!(net, 50)
+            @test PMA.line(net)[1, :rate_a] == 0.5 * old_line_rate
+            @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.25 * old_rate
+        end
+
         @test converged(net) == false
     end
 
@@ -88,9 +97,18 @@ end
         build_pmc!(net)
         @test length(PMA.pmc(net)["bus"]) == 15
         @test length(PMA.pmc(net)["gen"]) == 7 # 6 generators + 1 ps_load
-        old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
-        PMA.max_load_percent!(PMA.pmc(net), 50)
-        @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
+
+        @testset "max_load_percent!" begin
+            old_rate = PMA.pmc(net)["branch"]["1"]["rate_a"]
+            PMA.max_load_percent!(PMA.pmc(net), 50)
+            @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.5 * old_rate
+
+            old_line_rate = PMA.line(net)[1, :rate_a]
+            PMA.max_load_percent!(net, 50)
+            @test PMA.line(net)[1, :rate_a] == 0.5 * old_line_rate
+            @test PMA.pmc(net)["branch"]["1"]["rate_a"] == 0.25 * old_rate
+        end
+
         @test converged(net) == false
     end
 
