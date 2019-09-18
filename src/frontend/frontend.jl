@@ -1158,9 +1158,9 @@ function max_load_percent!(net::Network, maxload::Real)
         maxload /= 100 # % to fraction
 
         # First the dataframes:
-        line(net)[:rate_a] *= maxload
-        line(net)[:rate_b] *= maxload
-        line(net)[:rate_c] *= maxload
+        line(net)[!, :rate_a] *= maxload
+        line(net)[!, :rate_b] *= maxload
+        line(net)[!, :rate_c] *= maxload
 
         # Now the pmc:
         for k in keys(pmc(net)["branch"])
