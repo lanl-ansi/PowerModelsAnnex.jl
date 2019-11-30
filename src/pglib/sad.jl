@@ -6,7 +6,7 @@ function run_sad_opf(file, model_constructor, optimizer; kwargs...)
 end
 
 ""
-function post_sad_opf(pm::PMs.GenericPowerModel)
+function post_sad_opf(pm::PMs.AbstractPowerModel)
     PMs.variable_voltage(pm)
     PMs.variable_generation(pm)
     PMs.variable_branch_flow(pm)
@@ -23,7 +23,7 @@ function post_sad_opf(pm::PMs.GenericPowerModel)
     end
 
     for i in PMs.ids(pm, :bus)
-        PMs.constraint_power_balance_shunt(pm, i)
+        PMs.constraint_power_balance(pm, i)
     end
 
     for (i, branch) in ref(pm, :branch)

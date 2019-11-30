@@ -89,7 +89,7 @@ end
     @testset "case $(name)" for (name, case_file) in case_files
         data = PMs.parse_file(case_file)
         opf_status, opf_model = run_qc_opf_model(data, ipopt_solver)
-        pm_result = PMs.run_opf(data, PMs.QCWRTriPowerModel, ipopt_solver)
+        pm_result = PMs.run_opf(data, PMs.QCLSPowerModel, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         @test isapprox(JuMP.objective_value(opf_model), pm_result["objective"]; atol = 1e-5)

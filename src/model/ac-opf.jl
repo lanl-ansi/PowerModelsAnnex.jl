@@ -42,6 +42,9 @@ data = PowerModels.parse_file(file_name)
 # so that additional parameter checks are not required
 PowerModels.standardize_cost_terms!(data, order=2)
 
+# Adds reasonable rate_a values to branches without them
+PowerModels.calc_thermal_limits!(data)
+
 # use build_ref to filter out inactive components
 ref = PowerModels.build_ref(data)[:nw][0]
 # note: ref contains all the relevant system parameters needed to build the OPF model

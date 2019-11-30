@@ -2,7 +2,7 @@ PowerModelsAnnex.jl Change Log
 ==============================
 
 ### Staged
-- nothing
+- Updates for PowerModels v0.13
 
 ### v0.2.5
 - Updates to frontend for MOI status values (#60)

@@ -1,7 +1,7 @@
-NLForms = Union{NLSOCWROAForm, NLACRForm}
+NLPowerModels = Union{NLSOCWRPowerModel, NLACRPowerModel}
 
 ""
-function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::PMs.GenericPowerModel{T}) where T <: NLForms
+function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::NLPowerModels)
     gen_cost = Dict()
     dcline_cost = Dict()
 
