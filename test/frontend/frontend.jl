@@ -37,7 +37,7 @@ end
 
 @testset "PowerModels Network" begin
     @testset "Piecewise linear costs" begin
-        net = Network(case_files["case14"])
+        net = Network(case_files["case14"], calc_thermal_limits=true)
         @test size(PMA.bus(net))[1] == 14
         add_bus!(net)
         add_gen!(net)
@@ -76,7 +76,7 @@ end
 
 
     @testset "Polynomial costs" begin
-        net = Network(case_files["case14"])
+        net = Network(case_files["case14"], calc_thermal_limits=true)
         @test size(PMA.bus(net))[1] == 14
         add_bus!(net)
         add_gen!(net)
@@ -112,7 +112,7 @@ end
         @test converged(net) == false
     end
 
-    net = Network(case_files["case14"])
+    net = Network(case_files["case14"], calc_thermal_limits=true)
     @test !PMA.infeasible(net)
     pm = PMA.network2pmc(net)
     @test isa(pm, Dict)
