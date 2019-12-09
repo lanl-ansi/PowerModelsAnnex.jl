@@ -398,14 +398,16 @@ function stripunits!(net::Network)
     end
 end
 
-function matpower2pmc(path::AbstractString)
+function matpower2pmc(path::AbstractString; calc_thermal_limits=true)
     return Memento.setlevel!(Memento.getlogger(PowerModels), "error") do
-        PowerModels.parse_file(path)
+        pmc = PowerModels.parse_file(path)
+        calc_thermal_limits && PowerModels.calc_thermal_limits!(pmc)
+        pmc
     end
 end
 
-function Network(casepath::AbstractString)
-    return Network(matpower2pmc(casepath))
+function Network(casepath::AbstractString; calc_thermal_limits=true)
+    return Network(matpower2pmc(casepath; calc_thermal_limits=calc_thermal_limits))
 end
 
 """
