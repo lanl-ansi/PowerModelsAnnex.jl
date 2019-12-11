@@ -2,17 +2,13 @@
 
 # Defines a variant of the SOCWRForm which is appropriate for outer approximation
 
-export SOCWROAPowerModel, SOCWROAForm
+export SOCWROAPowerModel
 
-abstract type SOCWROAForm <: PMs.SOCWRForm end
+mutable struct SOCWROAPowerModel <: PMs.AbstractSOCWRModel PMs.@pm_fields end
 
-const SOCWROAPowerModel = PMs.GenericPowerModel{SOCWROAForm}
-
-"default SOCWROA constructor"
-SOCWROAPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, SOCWROAForm; kwargs...)
 
 ""
-function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::PMs.GenericPowerModel{T}) where T <: SOCWROAForm
+function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPowerModel)
     gen_cost = Dict()
     dcline_cost = Dict()
 
@@ -100,7 +96,7 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::PMs.Generi
 end
 
 
-function PMs.constraint_model_voltage(pm::PMs.GenericPowerModel{T}, n::Int, h::Int) where T <: SOCWROAForm
+function PMs.constraint_model_voltage(pm::SOCWROAPowerModel, n::Int, h::Int)
     w  = var(pm, n, h,  :w)
     wr = var(pm, n, h, :wr)
     wi = var(pm, n, h, :wi)
@@ -111,13 +107,13 @@ function PMs.constraint_model_voltage(pm::PMs.GenericPowerModel{T}, n::Int, h::I
     end
 end
 
-function PMs.constraint_thermal_limit_from(pm::PMs.GenericPowerModel{T}, n::Int, h::Int, f_idx, rate_a) where T <: SOCWROAForm
+function PMs.constraint_thermal_limit_from(pm::SOCWROAPowerModel, n::Int, h::Int, f_idx, rate_a)
     p_fr = var(pm, n, h, :p, f_idx)
     q_fr = var(pm, n, h, :q, f_idx)
     @NLconstraint(pm.model, sqrt(p_fr^2 + q_fr^2) <= rate_a)
 end
 
-function PMs.constraint_thermal_limit_to(pm::PMs.GenericPowerModel{T}, n::Int, h::Int, t_idx, rate_a) where T <: SOCWROAForm
+function PMs.constraint_thermal_limit_to(pm::SOCWROAPowerModel, n::Int, h::Int, t_idx, rate_a)
     p_to = var(pm, n, h, :p, t_idx)
     q_to = var(pm, n, h, :q, t_idx)
     @NLconstraint(pm.model, sqrt(p_to^2 + q_to^2) <= rate_a)
@@ -127,29 +123,19 @@ end
 
 # Defines a variant of the SOCWRForm which forces the NL solver path
 
-export NLSOCWRPowerModel, NLSOCWROAForm
+export NLSOCWRPowerModel
 
-abstract type NLSOCWROAForm <: PMs.SOCWRForm end
-
-const NLSOCWRPowerModel = PMs.GenericPowerModel{NLSOCWROAForm}
-
-"default NLSOCWROAForm constructor"
-NLSOCWRPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, NLSOCWROAForm; kwargs...)
+mutable struct NLSOCWRPowerModel <: PMs.AbstractSOCWRModel PMs.@pm_fields end
 
 
 
 # Defines a variant of the QCWRTriForm without the linking constraints
+export QCLSNoLinkPowerModel
 
-export QCWRTriNoLinkPowerModel, QCWRTriNoLinkForm
+mutable struct QCLSNoLinkPowerModel <: PMs.AbstractQCLSModel PMs.@pm_fields end
 
-abstract type QCWRTriNoLinkForm <: PMs.QCWRTriForm end
 
-const QCWRTriNoLinkPowerModel = PMs.GenericPowerModel{QCWRTriNoLinkForm}
-
-"default QC trilinear without linking constraint model constructor"
-QCWRTriNoLinkPowerModel(data::Dict{String,Any}; kwargs...) = PMs.GenericPowerModel(data, QCWRTriNoLinkForm; kwargs...)
-
-function PMs.constraint_model_voltage(pm::PMs.GenericPowerModel{T}, n::Int, c::Int) where T <: QCWRTriNoLinkForm
+function PMs.constraint_model_voltage(pm::QCLSNoLinkPowerModel, n::Int, c::Int)
     v = var(pm, n, c, :vm)
     t = var(pm, n, c, :va)
 

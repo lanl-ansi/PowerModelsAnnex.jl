@@ -6,7 +6,7 @@ function run_api_opf(file, model_constructor, optimizer; kwargs...)
 end
 
 ""
-function post_api_opf(pm::PMs.GenericPowerModel)
+function post_api_opf(pm::PMs.AbstractPowerModel)
     PMs.variable_voltage(pm)
     bounds_tighten_voltage(pm)
 
@@ -55,7 +55,7 @@ end
 
 
 "variable: load_factor >= 1.0"
-function variable_load_factor(pm::PMs.GenericPowerModel)
+function variable_load_factor(pm::PMs.AbstractPowerModel)
     var(pm)[:load_factor] = @variable(pm.model,
         base_name="load_factor",
         lower_bound=1.0,
@@ -64,12 +64,12 @@ function variable_load_factor(pm::PMs.GenericPowerModel)
 end
 
 "objective: Max. load_factor"
-function objective_max_loading(pm::PMs.GenericPowerModel)
+function objective_max_loading(pm::PMs.AbstractPowerModel)
     @objective(pm.model, Max, var(pm, :load_factor))
 end
 
 ""
-function objective_max_loading_voltage_norm(pm::PMs.GenericPowerModel)
+function objective_max_loading_voltage_norm(pm::PMs.AbstractPowerModel)
     # Seems to create too much reactive power and makes even small models hard to converge
     load_factor = var(pm, :load_factor)
 
@@ -80,7 +80,7 @@ function objective_max_loading_voltage_norm(pm::PMs.GenericPowerModel)
 end
 
 ""
-function objective_max_loading_gen_output(pm::PMs.GenericPowerModel)
+function objective_max_loading_gen_output(pm::PMs.AbstractPowerModel)
     # Works but adds unnecessary runtime
     load_factor = var(pm, :load_factor)
 
@@ -92,7 +92,7 @@ function objective_max_loading_gen_output(pm::PMs.GenericPowerModel)
 end
 
 ""
-function bounds_tighten_voltage(pm::PMs.GenericPowerModel{T}; epsilon = 0.001) where T <: PMs.AbstractACPForm
+function bounds_tighten_voltage(pm::PMs.AbstractACPModel; epsilon = 0.001)
     for (i,bus) in ref(pm, :bus)
         v = var(pm, :vm, i)
         JuMP.set_upper_bound(v, bus["vmax"]*(1.0-epsilon))
@@ -101,7 +101,7 @@ function bounds_tighten_voltage(pm::PMs.GenericPowerModel{T}; epsilon = 0.001) w
 end
 
 ""
-function upperbound_negative_active_generation(pm::PMs.GenericPowerModel)
+function upperbound_negative_active_generation(pm::PMs.AbstractPowerModel)
     for (i,gen) in ref(pm, :gen)
         if gen["pmax"] <= 0
             pg = var(pm, :pg, i)
@@ -111,7 +111,7 @@ function upperbound_negative_active_generation(pm::PMs.GenericPowerModel)
 end
 
 ""
-function constraint_power_balance_shunt_scaled(pm::PMs.GenericPowerModel{T}, n::Int, c::Int, i::Int) where T <: PMs.AbstractACPForm
+function constraint_power_balance_shunt_scaled(pm::PMs.AbstractACPModel, n::Int, c::Int, i::Int)
     bus = ref(pm, n, :bus, i)
     bus_arcs = ref(pm, n, :bus_arcs, i)
     bus_gens = ref(pm, n, :bus_gens, i)
@@ -150,11 +150,11 @@ function constraint_power_balance_shunt_scaled(pm::PMs.GenericPowerModel{T}, n::
 
     @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*vm^2)
 end
-constraint_power_balance_shunt_scaled(pm::PMs.GenericPowerModel, i::Int) = constraint_power_balance_shunt_scaled(pm, pm.cnw, pm.ccnd, i)
+constraint_power_balance_shunt_scaled(pm::PMs.AbstractPowerModel, i::Int) = constraint_power_balance_shunt_scaled(pm, pm.cnw, pm.ccnd, i)
 
 
 ""
-function solution_api(pm::PMs.GenericPowerModel, sol::Dict{String,Any})
+function solution_api(pm::PMs.AbstractPowerModel, sol::Dict{String,Any})
     PMs.add_setpoint_bus_voltage!(sol, pm)
     PMs.add_setpoint_generator_power!(sol, pm)
     PMs.add_setpoint_branch_flow!(sol, pm)
@@ -166,7 +166,7 @@ end
 Base.getindex(x::JuMP.VariableRef, i::Int64) = x
 
 ""
-function add_setpoint_load_demand!(sol, pm::PMs.GenericPowerModel)
+function add_setpoint_load_demand!(sol, pm::PMs.AbstractPowerModel)
     mva_base = pm.data["baseMVA"]
     PMs.add_setpoint!(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], var_key = (idx,item) -> 1)
     PMs.add_setpoint!(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], var_key = (idx,item) -> 1)

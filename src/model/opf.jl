@@ -17,8 +17,18 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
     @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
     @variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
 
-    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
-    @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -Inf <= p[(l,i,j) in ref[:arcs]] <= Inf)
+    @variable(model, -Inf <= q[(l,i,j) in ref[:arcs]] <= Inf)
+    for arc in ref[:arcs]
+        (l,i,j) = arc
+        branch = ref[:branch][l]
+        if haskey(branch, "rate_a")
+            JuMP.set_lower_bound(p[arc], -branch["rate_a"])
+            JuMP.set_upper_bound(p[arc],  branch["rate_a"])
+            JuMP.set_lower_bound(q[arc], -branch["rate_a"])
+            JuMP.set_upper_bound(q[arc],  branch["rate_a"])
+        end
+    end
 
     @variable(model, p_dc[a in ref[:arcs_dc]])
     @variable(model, q_dc[a in ref[:arcs_dc]])
@@ -106,8 +116,10 @@ function post_ac_opf(data::Dict{String,Any}, model=Model())
         @constraint(model, va_fr - va_to >= branch["angmin"])
 
         # Apparent Power Limit, From and To
-        @constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
-        @constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
+        if haskey(branch, "rate_a")
+            @constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
+            @constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
+        end
     end
 
     for (i,dcline) in ref[:dcline]
@@ -143,9 +155,18 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
     @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
     @variable(model, ref[:gen][i]["qmin"] <= qg[i in keys(ref[:gen])] <= ref[:gen][i]["qmax"])
 
-    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
-    @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
-
+    @variable(model, -Inf <= p[(l,i,j) in ref[:arcs]] <= Inf)
+    @variable(model, -Inf <= q[(l,i,j) in ref[:arcs]] <= Inf)
+    for arc in ref[:arcs]
+        (l,i,j) = arc
+        branch = ref[:branch][l]
+        if haskey(branch, "rate_a")
+            JuMP.set_lower_bound(p[arc], -branch["rate_a"])
+            JuMP.set_upper_bound(p[arc],  branch["rate_a"])
+            JuMP.set_lower_bound(q[arc], -branch["rate_a"])
+            JuMP.set_upper_bound(q[arc],  branch["rate_a"])
+        end
+    end
     @variable(model, p_dc[a in ref[:arcs_dc]])
     @variable(model, q_dc[a in ref[:arcs_dc]])
 
@@ -253,8 +274,10 @@ function post_soc_opf(data::Dict{String,Any}, model=Model())
         @constraint(model, wi_br >= tan(branch["angmin"])*wr_br)
 
         # Apparent Power Limit, From and To
-        @constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
-        @constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
+        if haskey(branch, "rate_a")
+            @constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
+            @constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
+        end
     end
 
     for (i,dcline) in ref[:dcline]
@@ -335,15 +358,30 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
     # compute upper bound
     cm_ub = Dict()
     for (bp, buspair) in ref[:buspairs]
-        cm_ub[bp] = ((buspair["rate_a"]*buspair["tap"])/buspair["vm_fr_min"])^2
+        if haskey(buspair, "rate_a")
+            cm_ub[bp] = ((buspair["rate_a"]*buspair["tap"])/buspair["vm_fr_min"])^2
+        else
+            cm_ub[bp] = Inf
+        end
     end
     # define current magnitude variable
     @variable(model, 0 <= cm[bp in keys(ref[:buspairs])] <= cm_ub[bp])
 
 
     # line flow variables
-    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
-    @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -Inf <= p[(l,i,j) in ref[:arcs]] <= Inf)
+    @variable(model, -Inf <= q[(l,i,j) in ref[:arcs]] <= Inf)
+    for arc in ref[:arcs]
+        (l,i,j) = arc
+        branch = ref[:branch][l]
+        if haskey(branch, "rate_a")
+            JuMP.set_lower_bound(p[arc], -branch["rate_a"])
+            JuMP.set_upper_bound(p[arc],  branch["rate_a"])
+            JuMP.set_lower_bound(q[arc], -branch["rate_a"])
+            JuMP.set_upper_bound(q[arc],  branch["rate_a"])
+        end
+    end
+
 
     # generation pg and qg
     @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
@@ -572,8 +610,10 @@ function post_qc_opf(data::Dict{String,Any}, model=Model())
         @constraint(model, wi_br >= tan(branch["angmin"])*wr_br)
 
         # Apparent Power Limit, From and To
-        @constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
-        @constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
+        if haskey(branch, "rate_a")
+            @constraint(model, p[f_idx]^2 + q[f_idx]^2 <= branch["rate_a"]^2)
+            @constraint(model, p[t_idx]^2 + q[t_idx]^2 <= branch["rate_a"]^2)
+        end
     end
 
     # DC line constraints
@@ -605,7 +645,15 @@ function post_dc_opf(data::Dict{String,Any}, model=Model())
 
     @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
 
-    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs_from]] <= ref[:branch][l]["rate_a"])
+    @variable(model, -Inf <= p[(l,i,j) in ref[:arcs]] <= Inf)
+    for arc in ref[:arcs]
+        (l,i,j) = arc
+        branch = ref[:branch][l]
+        if haskey(branch, "rate_a")
+            JuMP.set_lower_bound(p[arc], -branch["rate_a"])
+            JuMP.set_upper_bound(p[arc],  branch["rate_a"])
+        end
+    end
 
     p_expr = Dict([((l,i,j), 1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]])
     p_expr = merge(p_expr, Dict([((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]]))
