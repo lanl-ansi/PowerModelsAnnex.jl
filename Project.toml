@@ -2,7 +2,7 @@ name = "PowerModelsAnnex"
 uuid = "6e471128-d39d-5672-b02b-a742bd1b77ed"
 authors = ["Carleton Coffrin, et. al."]
 repo = "https://github.com/lanl-ansi/PowerModelsAnnex.jl"
-version = "0.2.5"
+version = "0.2.6"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
