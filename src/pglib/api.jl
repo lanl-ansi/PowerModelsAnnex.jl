@@ -1,12 +1,12 @@
-export run_api_opf
+export run_opf_api
 
 ""
-function run_api_opf(file, model_constructor, optimizer; kwargs...)
-    return PMs.run_model(file, model_constructor, optimizer, post_api_opf; solution_builder = solution_api, kwargs...)
+function run_opf_api(file, model_constructor, optimizer; kwargs...)
+    return PMs.run_model(file, model_constructor, optimizer, post_opf_api; solution_builder = solution_api, kwargs...)
 end
 
 ""
-function post_api_opf(pm::PMs.AbstractPowerModel)
+function post_opf_api(pm::PMs.AbstractPowerModel)
     PMs.variable_voltage(pm)
     bounds_tighten_voltage(pm)
 

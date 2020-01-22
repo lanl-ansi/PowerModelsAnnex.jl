@@ -1,12 +1,12 @@
-export run_sad_opf
+export run_opf_sad
 
 ""
-function run_sad_opf(file, model_constructor, optimizer; kwargs...)
-    return PMs.run_model(file, model_constructor, optimizer, post_sad_opf; kwargs...)
+function run_opf_sad(file, model_constructor, optimizer; kwargs...)
+    return PMs.run_model(file, model_constructor, optimizer, post_opf_sad; kwargs...)
 end
 
 ""
-function post_sad_opf(pm::PMs.AbstractPowerModel)
+function post_opf_sad(pm::PMs.AbstractPowerModel)
     PMs.variable_voltage(pm)
     PMs.variable_generation(pm)
     PMs.variable_branch_flow(pm)
