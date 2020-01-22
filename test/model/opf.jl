@@ -1,6 +1,6 @@
 
 function run_ac_opf_model(data, optimizer)
-    model = post_ac_opf(data, JuMP.Model(optimizer))
+    model = build_ac_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
 end
@@ -39,7 +39,7 @@ end
 end
 
 function run_soc_opf_model(data, optimizer)
-    model =  post_soc_opf(data, JuMP.Model(optimizer))
+    model =  build_soc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
 end
@@ -80,7 +80,7 @@ end
 
 
 function run_qc_opf_model(data, optimizer)
-    model =  post_qc_opf(data, JuMP.Model(optimizer))
+    model =  build_qc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
 end
@@ -121,7 +121,7 @@ end
 
 
 function run_dc_opf_model(data, optimizer)
-    model = post_dc_opf(data, JuMP.Model(optimizer))
+    model = build_dc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
 end

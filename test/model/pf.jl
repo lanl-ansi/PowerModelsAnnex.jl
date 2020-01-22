@@ -1,6 +1,6 @@
 
 function run_ac_pf_model(data, optimizer)
-    model = post_ac_pf(data, JuMP.Model(optimizer))
+    model = build_ac_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
 end
@@ -36,7 +36,7 @@ end
 end
 
 function run_soc_pf_model(data, optimizer)
-    model = post_soc_pf(data, JuMP.Model(optimizer))
+    model = build_soc_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
 end
@@ -76,7 +76,7 @@ end
 end
 
 function run_dc_pf_model(data, optimizer)
-    model = post_dc_pf(data, JuMP.Model(optimizer))
+    model = build_dc_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
 end

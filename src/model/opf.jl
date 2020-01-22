@@ -1,10 +1,10 @@
-export post_ac_opf, post_soc_opf, post_qc_opf, post_dc_opf
+export build_ac_opf, build_soc_opf, build_qc_opf, build_dc_opf
 
 """
 Given a JuMP model and a PowerModels network data structure,
 Builds an AC-OPF formulation of the given data and returns the JuMP model
 """
-function post_ac_opf(data::Dict{String,Any}, model=Model())
+function build_ac_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
@@ -138,7 +138,7 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an SOC-OPF formulation of the given data and returns the JuMP model
 """
-function post_soc_opf(data::Dict{String,Any}, model=Model())
+function build_soc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
@@ -297,7 +297,7 @@ Given the JuMP model and the PowerModels network data structure,
 Builds the QC-OPF formulation of the given data and returns the JuMP model
 Implementation provided by @sidhant172
 """
-function post_qc_opf(data::Dict{String,Any}, model=Model())
+function build_qc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 
@@ -634,7 +634,7 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an DC-OPF formulation of the given data and returns the JuMP model
 """
-function post_dc_opf(data::Dict{String,Any}, model=Model())
+function build_dc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
 

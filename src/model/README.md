@@ -28,7 +28,7 @@ ipopt = Ipopt.Optimizer
 model = Model(with_optimizer(ipopt))
 
 data = PowerModels.parse_file("case3.m")
-post_ac_opf(data, model)
+build_ac_opf(data, model)
 optimize!(model)
 ```
 
