@@ -4,6 +4,9 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.3.0
+- Update to PowerModels v0.14 and new naming conventions (#65)
+
 ### v0.2.6
 - Updates for PowerModels v0.13
 

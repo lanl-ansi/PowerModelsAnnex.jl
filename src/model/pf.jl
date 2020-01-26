@@ -1,10 +1,10 @@
-export post_ac_pf, post_soc_pf, post_dc_pf
+export build_ac_pf, build_soc_pf, build_dc_pf
 
 """
 Given a JuMP model and a PowerModels network data structure,
 Builds an AC-PF formulation of the given data and returns the JuMP model
 """
-function post_ac_pf(data::Dict{String,Any}, model=Model())
+function build_ac_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
@@ -121,7 +121,7 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an SOC-PF formulation of the given data and returns the JuMP model
 """
-function post_soc_pf(data::Dict{String,Any}, model=Model())
+function build_soc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
@@ -242,7 +242,7 @@ end
 Given a JuMP model and a PowerModels network data structure,
 Builds an DC-PF formulation of the given data and returns the JuMP model
 """
-function post_dc_pf(data::Dict{String,Any}, model=Model())
+function build_dc_pf(data::Dict{String,Any}, model=Model())
     @assert !InfrastructureModels.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
