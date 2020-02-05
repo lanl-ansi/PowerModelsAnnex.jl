@@ -62,9 +62,17 @@ function variable_load_factor(pm::PMs.AbstractPowerModel, report::Bool=true)
         start = 1.0
     )
     sol(pm)[:load_factor] = load_factor
-    mva_base = pm.data["baseMVA"]
-    PMs.add_setpoint!(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], var_key = (idx,item) -> 1)
-    PMs.add_setpoint!(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], var_key = (idx,item) -> 1)
+    for (i,load) in ref(pm, :load)
+        #item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i]
+        if load["pd"] > 0 && load["qd"] > 0
+            sol(pm, :load, i)[:pd] = load["pd"]*load_factor
+        else
+            sol(pm, :load, i)[:pd] = load["pd"]
+        end
+        sol(pm, :load, i)[:qd] = load["qd"]*load_factor
+    end
+    #PMs.add_setpoint!(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], var_key = (idx,item) -> 1)
+    #PMs.add_setpoint!(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], var_key = (idx,item) -> 1)
 end
 
 "objective: Max. load_factor"
@@ -115,31 +123,31 @@ function upperbound_negative_active_generation(pm::PMs.AbstractPowerModel)
 end
 
 ""
-function constraint_power_balance_shunt_scaled(pm::PMs.AbstractACPModel, n::Int, c::Int, i::Int)
+function constraint_power_balance_shunt_scaled(pm::PMs.AbstractACPModel, n::Int, i::Int)
     bus = ref(pm, n, :bus, i)
     bus_arcs = ref(pm, n, :bus_arcs, i)
     bus_gens = ref(pm, n, :bus_gens, i)
     bus_loads = ref(pm, n, :bus_loads, i)
     bus_shunts = ref(pm, n, :bus_shunts, i)
 
-    load_factor = var(pm, n, c, :load_factor)
-    vm = var(pm, n, c, :vm, i)
-    p = var(pm, n, c, :p)
-    q = var(pm, n, c, :q)
-    pg = var(pm, n, c, :pg)
-    qg = var(pm, n, c, :qg)
+    load_factor = var(pm, n, :load_factor)
+    vm = var(pm, n, :vm, i)
+    p = var(pm, n, :p)
+    q = var(pm, n, :q)
+    pg = var(pm, n, :pg)
+    qg = var(pm, n, :qg)
 
     if length(bus_loads) > 0
-        pd = sum([ref(pm, n, :load, i, "pd", c) for i in bus_loads])
-        qd = sum([ref(pm, n, :load, i, "qd", c) for i in bus_loads])
+        pd = sum([ref(pm, n, :load, i, "pd") for i in bus_loads])
+        qd = sum([ref(pm, n, :load, i, "qd") for i in bus_loads])
     else
         pd = 0.0
         qd = 0.0
     end
 
     if length(bus_shunts) > 0
-        gs = sum([ref(pm, n, :shunt, i, "gs", c) for i in bus_shunts])
-        bs = sum([ref(pm, n, :shunt, i, "bs", c) for i in bus_shunts])
+        gs = sum([ref(pm, n, :shunt, i, "gs") for i in bus_shunts])
+        bs = sum([ref(pm, n, :shunt, i, "bs") for i in bus_shunts])
     else
         gs = 0.0
         bs = 0.0
@@ -154,24 +162,5 @@ function constraint_power_balance_shunt_scaled(pm::PMs.AbstractACPModel, n::Int,
 
     @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*vm^2)
 end
-constraint_power_balance_shunt_scaled(pm::PMs.AbstractPowerModel, i::Int) = constraint_power_balance_shunt_scaled(pm, pm.cnw, pm.ccnd, i)
+constraint_power_balance_shunt_scaled(pm::PMs.AbstractPowerModel, i::Int) = constraint_power_balance_shunt_scaled(pm, pm.cnw, i)
 
-
-""
-function solution_api(pm::PMs.AbstractPowerModel, sol::Dict{String,Any})
-    PMs.add_setpoint_bus_voltage!(sol, pm)
-    PMs.add_setpoint_generator_power!(sol, pm)
-    PMs.add_setpoint_branch_flow!(sol, pm)
-
-    # extension
-    add_setpoint_load_demand!(sol, pm)
-end
-
-Base.getindex(x::JuMP.VariableRef, i::Int64) = x
-
-""
-function add_setpoint_load_demand!(sol, pm::PMs.AbstractPowerModel)
-    mva_base = pm.data["baseMVA"]
-    PMs.add_setpoint!(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], var_key = (idx,item) -> 1)
-    PMs.add_setpoint!(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], var_key = (idx,item) -> 1)
-end

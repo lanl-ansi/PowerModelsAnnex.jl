@@ -59,7 +59,7 @@ end
                 #println("$i, $(JuMP.value(pf_model[:va][index])), $(pm_sol["bus"][i]["va"])")
                 #@test isapprox(JuMP.value(pf_model[:va][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
                 #println("$i, $(JuMP.value(pf_model[:w][index])), $(pm_sol["bus"][i]["vm"]^2)")
-                @test isapprox(JuMP.value(pf_model[:w][index]), pm_sol["bus"][i]["vm"]^2; atol = 1e-3)
+                @test isapprox(JuMP.value(pf_model[:w][index]), pm_sol["bus"][i]["w"]; atol = 1e-3)
             end
         end
 
