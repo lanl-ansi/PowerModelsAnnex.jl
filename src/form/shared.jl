@@ -1,13 +1,13 @@
 NLPowerModels = Union{NLSOCWRPowerModel, NLACRPowerModel}
 
 ""
-function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::NLPowerModels)
+function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::NLPowerModels, report::Bool=true)
     gen_cost = Dict()
     dcline_cost = Dict()
 
     for (n, nw_ref) in PMs.nws(pm)
         for (i,gen) in nw_ref[:gen]
-            pg = sum( var(pm, n, c, :pg, i) for c in PMs.conductor_ids(pm, n) )
+            pg = sum( var(pm, n, :pg, i)[c] for c in PMs.conductor_ids(pm, n) )
 
             if length(gen["cost"]) == 1
                 gen_cost[(n,i)] = JuMP.@NLexpression(pm.model, gen["cost"][1])
@@ -22,7 +22,7 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::NLPowerMod
 
         from_idx = Dict(arc[1] => arc for arc in nw_ref[:arcs_from_dc])
         for (i,dcline) in nw_ref[:dcline]
-            p_dc = sum( var(pm, n, c, :p_dc, from_idx[i]) for c in PMs.conductor_ids(pm, n) )
+            p_dc = sum( var(pm, n, :p_dc, from_idx[i])[c] for c in PMs.conductor_ids(pm, n) )
 
             if length(dcline["cost"]) == 1
                 dcline_cost[(n,i)] = JuMP.@NLexpression(pm.model, dcline["cost"][1])

@@ -2,7 +2,7 @@ export run_opf_api
 
 ""
 function run_opf_api(file, model_constructor, optimizer; kwargs...)
-    return PMs.run_model(file, model_constructor, optimizer, build_opf_api; solution_builder = solution_api, kwargs...)
+    return PMs.run_model(file, model_constructor, optimizer, build_opf_api; kwargs...)
 end
 
 ""
@@ -55,12 +55,16 @@ end
 
 
 "variable: load_factor >= 1.0"
-function variable_load_factor(pm::PMs.AbstractPowerModel)
-    var(pm)[:load_factor] = @variable(pm.model,
+function variable_load_factor(pm::PMs.AbstractPowerModel, report::Bool=true)
+    load_factor = var(pm)[:load_factor] = @variable(pm.model,
         base_name="load_factor",
         lower_bound=1.0,
         start = 1.0
     )
+    sol(pm)[:load_factor] = load_factor
+    mva_base = pm.data["baseMVA"]
+    PMs.add_setpoint!(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], var_key = (idx,item) -> 1)
+    PMs.add_setpoint!(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], var_key = (idx,item) -> 1)
 end
 
 "objective: Max. load_factor"
