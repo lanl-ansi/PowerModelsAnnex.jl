@@ -4,7 +4,7 @@ import JuMP
 import JuMP: @variable, @constraint, @NLconstraint, @objective, @NLobjective, @expression, optimize!, Model
 import InfrastructureModels
 import PowerModels
-import PowerModels: ids, ref, var, con
+import PowerModels: ids, ref, var, con, sol
 import Memento
 
 const LOGGER = Memento.getlogger(PowerModels)

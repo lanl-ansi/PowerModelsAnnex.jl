@@ -8,7 +8,7 @@ mutable struct SOCWROAPowerModel <: PMs.AbstractSOCWRModel PMs.@pm_fields end
 
 
 ""
-function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPowerModel)
+function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPowerModel, report::Bool=true)
     gen_cost = Dict()
     dcline_cost = Dict()
 
@@ -16,7 +16,7 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPow
 
         var(pm, n)[:pg_sqr] = Dict()
         for (i,gen) in nw_ref[:gen]
-            pg = sum( var(pm, n, c, :pg, i) for c in PMs.conductor_ids(pm, n) )
+            pg = sum( var(pm, n, :pg, i)[c] for c in PMs.conductor_ids(pm, n) )
 
             if length(gen["cost"]) == 1
                 gen_cost[(n,i)] = JuMP.@NLexpression(pm.model, gen["cost"][1])
@@ -43,6 +43,10 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPow
                 )
                 JuMP.@NLconstraint(pm.model, pg^2 <= pg_sqr)
 
+                if report
+                    sol(pm, n, :gen, i)[:pg_sqr] = pg_sqr
+                end
+
                 gen_cost[(n,i)] = JuMP.@NLexpression(pm.model, gen["cost"][1]*pg_sqr + gen["cost"][2]*pg + gen["cost"][3])
             else
                 gen_cost[(n,i)] = 0.0
@@ -53,7 +57,7 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPow
 
         var(pm, n)[:p_dc_sqr] = Dict()
         for (i,dcline) in nw_ref[:dcline]
-            p_dc = sum( var(pm, n, c, :p_dc, from_idx[i]) for c in PMs.conductor_ids(pm, n) )
+            p_dc = sum( var(pm, n, :p_dc, from_idx[i])[c] for c in PMs.conductor_ids(pm, n) )
 
             if length(dcline["cost"]) == 1
                 dcline_cost[(n,i)] = JuMP.@NLexpression(pm.model, dcline["cost"][1])
@@ -80,6 +84,10 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPow
                 )
                 JuMP.@NLconstraint(pm.model, p_dc^2 <= p_dc_sqr)
 
+                if report
+                    sol(pm, n, :dcline, i)[:p_dc_sqr] = p_dc_sqr
+                end
+
                 dcline_cost[(n,i)] = JuMP.@NLexpression(pm.model, dcline["cost"][1]*p_dc_sqr + dcline["cost"][2]*p_dc + dcline["cost"][3])
             else
                 dcline_cost[(n,i)] = 0.0
@@ -96,10 +104,10 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPow
 end
 
 
-function PMs.constraint_model_voltage(pm::SOCWROAPowerModel, n::Int, h::Int)
-    w  = var(pm, n, h,  :w)
-    wr = var(pm, n, h, :wr)
-    wi = var(pm, n, h, :wi)
+function PMs.constraint_model_voltage(pm::SOCWROAPowerModel, n::Int)
+    w  = var(pm, n,  :w)
+    wr = var(pm, n, :wr)
+    wi = var(pm, n, :wi)
 
 
     for (i,j) in PMs.ids(pm, n, :buspairs)
@@ -107,15 +115,15 @@ function PMs.constraint_model_voltage(pm::SOCWROAPowerModel, n::Int, h::Int)
     end
 end
 
-function PMs.constraint_thermal_limit_from(pm::SOCWROAPowerModel, n::Int, h::Int, f_idx, rate_a)
-    p_fr = var(pm, n, h, :p, f_idx)
-    q_fr = var(pm, n, h, :q, f_idx)
+function PMs.constraint_thermal_limit_from(pm::SOCWROAPowerModel, n::Int, f_idx, rate_a)
+    p_fr = var(pm, n, :p, f_idx)
+    q_fr = var(pm, n, :q, f_idx)
     @NLconstraint(pm.model, sqrt(p_fr^2 + q_fr^2) <= rate_a)
 end
 
-function PMs.constraint_thermal_limit_to(pm::SOCWROAPowerModel, n::Int, h::Int, t_idx, rate_a)
-    p_to = var(pm, n, h, :p, t_idx)
-    q_to = var(pm, n, h, :q, t_idx)
+function PMs.constraint_thermal_limit_to(pm::SOCWROAPowerModel, n::Int, t_idx, rate_a)
+    p_to = var(pm, n, :p, t_idx)
+    q_to = var(pm, n, :q, t_idx)
     @NLconstraint(pm.model, sqrt(p_to^2 + q_to^2) <= rate_a)
 end
 
@@ -135,19 +143,19 @@ export QCLSNoLinkPowerModel
 mutable struct QCLSNoLinkPowerModel <: PMs.AbstractQCLSModel PMs.@pm_fields end
 
 
-function PMs.constraint_model_voltage(pm::QCLSNoLinkPowerModel, n::Int, c::Int)
-    v = var(pm, n, c, :vm)
-    t = var(pm, n, c, :va)
+function PMs.constraint_model_voltage(pm::QCLSNoLinkPowerModel, n::Int)
+    v = var(pm, n, :vm)
+    t = var(pm, n, :va)
 
-    td = var(pm, n, c, :td)
-    si = var(pm, n, c, :si)
-    cs = var(pm, n, c, :cs)
+    td = var(pm, n, :td)
+    si = var(pm, n, :si)
+    cs = var(pm, n, :cs)
 
-    w = var(pm, n, c, :w)
-    wr = var(pm, n, c, :wr)
-    lambda_wr = var(pm, n, c, :lambda_wr)
-    wi = var(pm, n, c, :wi)
-    lambda_wi = var(pm, n, c, :lambda_wi)
+    w = var(pm, n, :w)
+    wr = var(pm, n, :wr)
+    lambda_wr = var(pm, n, :lambda_wr)
+    wi = var(pm, n, :wi)
+    lambda_wi = var(pm, n, :lambda_wi)
 
     for (i,b) in ref(pm, n, :bus)
         InfrastructureModels.relaxation_sqr(pm.model, v[i], w[i])
@@ -172,8 +180,8 @@ function PMs.constraint_model_voltage(pm::QCLSNoLinkPowerModel, n::Int, c::Int)
 
         # to prevent this constraint from being posted on multiple parallel branchs
         if buspair["branch"] == i
-            PMs.constraint_power_magnitude_sqr(pm, i, nw=n, cnd=c)
-            PMs.constraint_power_magnitude_link(pm, i, nw=n, cnd=c)
+            PMs.constraint_power_magnitude_sqr(pm, i, nw=n)
+            PMs.constraint_power_magnitude_link(pm, i, nw=n)
         end
     end
 
