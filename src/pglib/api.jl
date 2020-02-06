@@ -63,7 +63,6 @@ function variable_load_factor(pm::PMs.AbstractPowerModel, report::Bool=true)
     )
     sol(pm)[:load_factor] = load_factor
     for (i,load) in ref(pm, :load)
-        #item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i]
         if load["pd"] > 0 && load["qd"] > 0
             sol(pm, :load, i)[:pd] = load["pd"]*load_factor
         else
@@ -71,8 +70,6 @@ function variable_load_factor(pm::PMs.AbstractPowerModel, report::Bool=true)
         end
         sol(pm, :load, i)[:qd] = load["qd"]*load_factor
     end
-    #PMs.add_setpoint!(sol, pm, "load", "pd", :load_factor; default_value = (item) -> item["pd"], scale = (x,item,i) -> item["pd"][i] > 0 && item["qd"][i] > 0 ? x*item["pd"][i] : item["pd"][i], var_key = (idx,item) -> 1)
-    #PMs.add_setpoint!(sol, pm, "load", "qd", :load_factor; default_value = (item) -> item["qd"], scale = (x,item,i) -> item["qd"][i], var_key = (idx,item) -> 1)
 end
 
 "objective: Max. load_factor"
