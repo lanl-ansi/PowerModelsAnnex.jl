@@ -4,6 +4,10 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.4.1
+- Add support for JuMP v0.21
+- Drop Manifest.toml (#57)
+
 ### v0.4.0
 - Update to PowerModels v0.15
 
