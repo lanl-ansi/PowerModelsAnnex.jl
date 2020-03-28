@@ -2,7 +2,7 @@ PowerModelsAnnex.jl Change Log
 ==============================
 
 ### Staged
-- nothing
+- Add support for optional branch power flows in api and sad models
 
 ### v0.4.2
 - Add support for Memento v0.13, v1.0

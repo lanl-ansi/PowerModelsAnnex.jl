@@ -14,6 +14,13 @@
         @test isapprox(result["objective"], 2.6872; atol = 1e-3)
         @test isapprox(result["solution"]["load"]["3"]["pd"], 10.754; atol = 1e-2)
     end
+    @testset "14-bus ieee case" begin
+        result = PowerModelsAnnex.run_opf_api(case_files["case14"], PMs.ACPPowerModel, ipopt_solver)
+
+        @test result["termination_status"] == PMs.LOCALLY_SOLVED
+        @test isapprox(result["objective"], 3.98769; atol = 1e-3)
+        @test isapprox(result["solution"]["load"]["1"]["pd"], 0.8653; atol = 1e-2)
+    end
     @testset "30-bus ieee case" begin
         result = PowerModelsAnnex.run_opf_api(case_files["case30"], PMs.ACPPowerModel, ipopt_solver)
 
