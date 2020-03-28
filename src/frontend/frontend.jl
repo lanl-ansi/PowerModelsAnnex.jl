@@ -400,8 +400,8 @@ end
 
 function matpower2pmc(path::AbstractString; calc_thermal_limits=false)
     return Memento.setlevel!(Memento.getlogger(PowerModels), "error") do
-        pmc = PowerModels.parse_file(path)
-        calc_thermal_limits && PowerModels.calc_thermal_limits!(pmc)
+        pmc = _PM.parse_file(path)
+        calc_thermal_limits && _PM.calc_thermal_limits!(pmc)
         pmc
     end
 end

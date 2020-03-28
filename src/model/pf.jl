@@ -5,7 +5,7 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an AC-PF formulation of the given data and returns the JuMP model
 """
 function build_ac_pf(data::Dict{String,Any}, model=Model())
-    @assert !InfrastructureModels.ismultinetwork(data)
+    @assert !_IM.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
     ref = PowerModels.build_ref(data)[:nw][0]
@@ -122,7 +122,7 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an SOC-PF formulation of the given data and returns the JuMP model
 """
 function build_soc_pf(data::Dict{String,Any}, model=Model())
-    @assert !InfrastructureModels.ismultinetwork(data)
+    @assert !_IM.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
     ref = PowerModels.build_ref(data)[:nw][0]
@@ -243,7 +243,7 @@ Given a JuMP model and a PowerModels network data structure,
 Builds an DC-PF formulation of the given data and returns the JuMP model
 """
 function build_dc_pf(data::Dict{String,Any}, model=Model())
-    @assert !InfrastructureModels.ismultinetwork(data)
+    @assert !_IM.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
     ref = PowerModels.build_ref(data)[:nw][0]

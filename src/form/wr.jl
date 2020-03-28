@@ -4,27 +4,27 @@
 
 export SOCWROAPowerModel
 
-mutable struct SOCWROAPowerModel <: PMs.AbstractSOCWRModel PMs.@pm_fields end
+mutable struct SOCWROAPowerModel <: _PM.AbstractSOCWRModel _PM.@pm_fields end
 
 
 ""
-function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPowerModel, report::Bool=true)
+function _PM._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPowerModel, report::Bool=true)
     gen_cost = Dict()
     dcline_cost = Dict()
 
-    for (n, nw_ref) in PMs.nws(pm)
+    for (n, nw_ref) in _PM.nws(pm)
 
         var(pm, n)[:pg_sqr] = Dict()
         for (i,gen) in nw_ref[:gen]
-            pg = sum( var(pm, n, :pg, i)[c] for c in PMs.conductor_ids(pm, n) )
+            pg = sum( var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n) )
 
             if length(gen["cost"]) == 1
                 gen_cost[(n,i)] = JuMP.@NLexpression(pm.model, gen["cost"][1])
             elseif length(gen["cost"]) == 2
                 gen_cost[(n,i)] = JuMP.@NLexpression(pm.model, gen["cost"][1]*pg + gen["cost"][2])
             elseif length(gen["cost"]) == 3
-                pmin = sum(gen["pmin"][c] for c in PMs.conductor_ids(pm, n))
-                pmax = sum(gen["pmax"][c] for c in PMs.conductor_ids(pm, n))
+                pmin = sum(gen["pmin"][c] for c in _PM.conductor_ids(pm, n))
+                pmax = sum(gen["pmax"][c] for c in _PM.conductor_ids(pm, n))
 
                 pg_sqr_ub = max(pmin^2, pmax^2)
                 pg_sqr_lb = 0.0
@@ -57,15 +57,15 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPow
 
         var(pm, n)[:p_dc_sqr] = Dict()
         for (i,dcline) in nw_ref[:dcline]
-            p_dc = sum( var(pm, n, :p_dc, from_idx[i])[c] for c in PMs.conductor_ids(pm, n) )
+            p_dc = sum( var(pm, n, :p_dc, from_idx[i])[c] for c in _PM.conductor_ids(pm, n) )
 
             if length(dcline["cost"]) == 1
                 dcline_cost[(n,i)] = JuMP.@NLexpression(pm.model, dcline["cost"][1])
             elseif length(dcline["cost"]) == 2
                 dcline_cost[(n,i)] = JuMP.@NLexpression(pm.model, dcline["cost"][1]*p_dc + dcline["cost"][2])
             elseif length(dcline["cost"]) == 3
-                pmin = sum(dcline["pminf"][c] for c in PMs.conductor_ids(pm, n))
-                pmax = sum(dcline["pmaxf"][c] for c in PMs.conductor_ids(pm, n))
+                pmin = sum(dcline["pminf"][c] for c in _PM.conductor_ids(pm, n))
+                pmax = sum(dcline["pmaxf"][c] for c in _PM.conductor_ids(pm, n))
 
                 p_dc_sqr_ub = max(pmin^2, pmax^2)
                 p_dc_sqr_lb = 0.0
@@ -99,29 +99,29 @@ function PMs._objective_min_fuel_and_flow_cost_polynomial_linquad(pm::SOCWROAPow
         sum(
             sum( gen_cost[(n,i)] for (i,gen) in nw_ref[:gen] ) +
             sum( dcline_cost[(n,i)] for (i,dcline) in nw_ref[:dcline] )
-        for (n, nw_ref) in PMs.nws(pm))
+        for (n, nw_ref) in _PM.nws(pm))
     )
 end
 
 
-function PMs.constraint_model_voltage(pm::SOCWROAPowerModel, n::Int)
+function _PM.constraint_model_voltage(pm::SOCWROAPowerModel, n::Int)
     w  = var(pm, n,  :w)
     wr = var(pm, n, :wr)
     wi = var(pm, n, :wi)
 
 
-    for (i,j) in PMs.ids(pm, n, :buspairs)
+    for (i,j) in _PM.ids(pm, n, :buspairs)
         @NLconstraint(pm.model, (wr[(i,j)]^2 + wi[(i,j)]^2)/w[j] <= w[i])
     end
 end
 
-function PMs.constraint_thermal_limit_from(pm::SOCWROAPowerModel, n::Int, f_idx, rate_a)
+function _PM.constraint_thermal_limit_from(pm::SOCWROAPowerModel, n::Int, f_idx, rate_a)
     p_fr = var(pm, n, :p, f_idx)
     q_fr = var(pm, n, :q, f_idx)
     @NLconstraint(pm.model, sqrt(p_fr^2 + q_fr^2) <= rate_a)
 end
 
-function PMs.constraint_thermal_limit_to(pm::SOCWROAPowerModel, n::Int, t_idx, rate_a)
+function _PM.constraint_thermal_limit_to(pm::SOCWROAPowerModel, n::Int, t_idx, rate_a)
     p_to = var(pm, n, :p, t_idx)
     q_to = var(pm, n, :q, t_idx)
     @NLconstraint(pm.model, sqrt(p_to^2 + q_to^2) <= rate_a)
@@ -133,17 +133,17 @@ end
 
 export NLSOCWRPowerModel
 
-mutable struct NLSOCWRPowerModel <: PMs.AbstractSOCWRModel PMs.@pm_fields end
+mutable struct NLSOCWRPowerModel <: _PM.AbstractSOCWRModel _PM.@pm_fields end
 
 
 
 # Defines a variant of the QCWRTriForm without the linking constraints
 export QCLSNoLinkPowerModel
 
-mutable struct QCLSNoLinkPowerModel <: PMs.AbstractQCLSModel PMs.@pm_fields end
+mutable struct QCLSNoLinkPowerModel <: _PM.AbstractQCLSModel _PM.@pm_fields end
 
 
-function PMs.constraint_model_voltage(pm::QCLSNoLinkPowerModel, n::Int)
+function _PM.constraint_model_voltage(pm::QCLSNoLinkPowerModel, n::Int)
     v = var(pm, n, :vm)
     t = var(pm, n, :va)
 
@@ -158,20 +158,20 @@ function PMs.constraint_model_voltage(pm::QCLSNoLinkPowerModel, n::Int)
     lambda_wi = var(pm, n, :lambda_wi)
 
     for (i,b) in ref(pm, n, :bus)
-        InfrastructureModels.relaxation_sqr(pm.model, v[i], w[i])
+        _IM.relaxation_sqr(pm.model, v[i], w[i])
     end
 
-    for bp in PMs.ids(pm, n, :buspairs)
+    for bp in _PM.ids(pm, n, :buspairs)
         i,j = bp
         @constraint(pm.model, t[i] - t[j] == td[bp])
 
-        PMs.relaxation_sin(pm.model, td[bp], si[bp])
-        PMs.relaxation_cos(pm.model, td[bp], cs[bp])
-        InfrastructureModels.relaxation_trilinear(pm.model, v[i], v[j], cs[bp], wr[bp], lambda_wr[bp,:])
-        InfrastructureModels.relaxation_trilinear(pm.model, v[i], v[j], si[bp], wi[bp], lambda_wi[bp,:])
+        _PM.relaxation_sin(pm.model, td[bp], si[bp])
+        _PM.relaxation_cos(pm.model, td[bp], cs[bp])
+        _IM.relaxation_trilinear(pm.model, v[i], v[j], cs[bp], wr[bp], lambda_wr[bp,:])
+        _IM.relaxation_trilinear(pm.model, v[i], v[j], si[bp], wi[bp], lambda_wi[bp,:])
 
         # this constraint is redudant and useful for debugging
-        #InfrastructureModels.relaxation_complex_product(pm.model, w[i], w[j], wr[bp], wi[bp])
+        #_IM.relaxation_complex_product(pm.model, w[i], w[j], wr[bp], wi[bp])
    end
 
    for (i,branch) in ref(pm, n, :branch)
@@ -180,8 +180,8 @@ function PMs.constraint_model_voltage(pm::QCLSNoLinkPowerModel, n::Int)
 
         # to prevent this constraint from being posted on multiple parallel branchs
         if buspair["branch"] == i
-            PMs.constraint_power_magnitude_sqr(pm, i, nw=n)
-            PMs.constraint_power_magnitude_link(pm, i, nw=n)
+            _PM.constraint_power_magnitude_sqr(pm, i, nw=n)
+            _PM.constraint_power_magnitude_link(pm, i, nw=n)
         end
     end
 

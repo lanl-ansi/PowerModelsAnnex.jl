@@ -2,6 +2,7 @@ PowerModelsAnnex.jl Change Log
 ==============================
 
 ### Staged
+- Update pacakge internal short names to `_PM` and `_IM`
 - Add support for optional branch power flows in api and sad models
 
 ### v0.4.2

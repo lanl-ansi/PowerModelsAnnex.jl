@@ -51,6 +51,6 @@ function build_pmc!(net::Network)
     for k in keys(updated)
         net.pmc[k] = updated[k]
     end
-    #PowerModels.check_network_data(updated) # Small problem, it's the cause of
+    #_PM.check_network_data(updated) # Small problem, it's the cause of
     # extreme verbosity.
 end

@@ -1,3 +1,3 @@
 export NLACRPowerModel
 
-mutable struct NLACRPowerModel <: PMs.AbstractACRModel PMs.@pm_fields end
+mutable struct NLACRPowerModel <: _PM.AbstractACRModel _PM.@pm_fields end

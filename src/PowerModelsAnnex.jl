@@ -2,14 +2,16 @@ module PowerModelsAnnex
 
 import JuMP
 import JuMP: @variable, @constraint, @NLconstraint, @objective, @NLobjective, @expression, optimize!, Model
-import InfrastructureModels
-import PowerModels
+
+import InfrastructureModels; const _IM = InfrastructureModels
+
+import PowerModels; const _PM = PowerModels
 import PowerModels: ids, ref, var, con, sol
+
 import Memento
 
 const LOGGER = Memento.getlogger(PowerModels)
 
-const PMs = PowerModels
 
 
 include("form/acr.jl")
