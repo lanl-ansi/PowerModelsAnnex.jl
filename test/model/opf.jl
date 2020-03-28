@@ -7,9 +7,9 @@ end
 
 @testset "test ac polar opf" begin
     @testset "case $(name)" for (name, case_file) in case_files
-        data = PMs.parse_file(case_file)
+        data = parse_file(case_file)
         opf_status, opf_model = run_ac_opf_model(data, ipopt_solver)
-        pm_result = PMs.run_ac_opf(data, ipopt_solver)
+        pm_result = run_ac_opf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         @test isapprox(JuMP.objective_value(opf_model), pm_result["objective"]; atol = 1e-5)
@@ -46,9 +46,9 @@ end
 
 @testset "test soc w opf" begin
     @testset "case $(name)" for (name, case_file) in case_files
-        data = PMs.parse_file(case_file)
+        data = parse_file(case_file)
         opf_status, opf_model = run_soc_opf_model(data, ipopt_solver)
-        pm_result = PMs.run_opf(data, PMs.SOCWRPowerModel, ipopt_solver)
+        pm_result = run_opf(data, SOCWRPowerModel, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         @test isapprox(JuMP.objective_value(opf_model), pm_result["objective"]; atol = 1e-5)
@@ -87,9 +87,9 @@ end
 
 @testset "test qc w+l opf" begin
     @testset "case $(name)" for (name, case_file) in case_files
-        data = PMs.parse_file(case_file)
+        data = parse_file(case_file)
         opf_status, opf_model = run_qc_opf_model(data, ipopt_solver)
-        pm_result = PMs.run_opf(data, PMs.QCLSPowerModel, ipopt_solver)
+        pm_result = run_opf(data, QCLSPowerModel, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         @test isapprox(JuMP.objective_value(opf_model), pm_result["objective"]; atol = 1e-5)
@@ -128,9 +128,9 @@ end
 
 @testset "test dc polar opf" begin
     @testset "case $(name)" for (name, case_file) in case_files
-        data = PMs.parse_file(case_file)
+        data = parse_file(case_file)
         opf_status, opf_model = run_dc_opf_model(data, ipopt_solver)
-        pm_result = PMs.run_dc_opf(data, ipopt_solver)
+        pm_result = run_dc_opf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         #println(opf_status)
@@ -139,8 +139,8 @@ end
         @test isapprox(JuMP.objective_value(opf_model), pm_result["objective"]; atol = 1e-5)
 
         # needed becouse some test networks are not DC feasible
-        if pm_result["termination_status"] == PMs.LOCALLY_SOLVED
-            @test opf_status == PMs.LOCALLY_SOLVED
+        if pm_result["termination_status"] == LOCALLY_SOLVED
+            @test opf_status == LOCALLY_SOLVED
 
             base_mva = data["baseMVA"]
 
@@ -160,8 +160,8 @@ end
                 end
             end
         else
-            @test opf_status == PMs.LOCALLY_INFEASIBLE
-            @test pm_result["status"] == PMs.LOCALLY_INFEASIBLE
+            @test opf_status == LOCALLY_INFEASIBLE
+            @test pm_result["status"] == LOCALLY_INFEASIBLE
         end
     end
 end
@@ -176,14 +176,14 @@ end
 
 @testset "test ac polar opf" begin
     optimizer, data, status, cost = run_file("../../src/model/ac-opf.jl")
-    pm_result = PMs.run_ac_opf(data, optimizer)
+    pm_result = run_ac_opf(data, optimizer)
     @test isapprox(cost, pm_result["objective"]; atol = 1e-6)
 end
 
 
 @testset "test dc polar opf" begin
     optimizer, data, status, cost = run_file("../../src/model/dc-opf.jl")
-    pm_result = PMs.run_dc_opf(data, optimizer)
+    pm_result = run_dc_opf(data, optimizer)
     @test isapprox(cost, pm_result["objective"]; atol = 1e-6)
 end
 

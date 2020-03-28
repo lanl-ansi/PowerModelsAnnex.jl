@@ -5,19 +5,13 @@ PMA = PowerModelsAnnex
 
 Unitful.register(PowerSystemsUnits)
 
-import JuMP
-import PowerModels
-PMs = PowerModels
+using JuMP
+using PowerModels
 
-import InfrastructureModels
-
-import Ipopt
-
-import Memento
-Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
-Memento.setlevel!(Memento.getlogger(PowerModels), "error")
-
+using Ipopt
 using Test
+
+PowerModels.silence()
 
 pms_path = joinpath(dirname(pathof(PowerModels)), "..")
 

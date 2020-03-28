@@ -7,9 +7,9 @@ end
 
 @testset "test ac polar pf" begin
     @testset "case $(name)" for (name, case_file) in case_files
-        data = PMs.parse_file(case_file)
+        data = parse_file(case_file)
         pf_status, pf_model = run_ac_pf_model(data, ipopt_solver)
-        pm_result = PMs.run_ac_pf(data, ipopt_solver)
+        pm_result = run_ac_pf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         base_mva = data["baseMVA"]
@@ -43,9 +43,9 @@ end
 
 @testset "test soc w pf" begin
     @testset "case $(name)" for (name, case_file) in case_files
-        data = PMs.parse_file(case_file)
+        data = parse_file(case_file)
         pf_status, pf_model = run_soc_pf_model(data, ipopt_solver)
-        pm_result = PMs.run_pf(data, PMs.SOCWRPowerModel, ipopt_solver)
+        pm_result = run_pf(data, SOCWRPowerModel, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         #println(pf_status)
@@ -83,17 +83,17 @@ end
 
 @testset "test dc polar pf" begin
     @testset "case $(name)" for (name, case_file) in case_files
-        data = PMs.parse_file(case_file)
+        data = parse_file(case_file)
         pf_status, pf_model = run_dc_pf_model(data, ipopt_solver)
-        pm_result = PMs.run_dc_pf(data, ipopt_solver)
+        pm_result = run_dc_pf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         #println(pf_status)
         #println(pm_result["status"])
 
         # needed becouse some test networks are not DC feasible
-        if pm_result["termination_status"] == PMs.LOCALLY_SOLVED
-            @test pf_status == PMs.LOCALLY_SOLVED
+        if pm_result["termination_status"] == LOCALLY_SOLVED
+            @test pf_status == LOCALLY_SOLVED
 
             base_mva = data["baseMVA"]
 
@@ -113,8 +113,8 @@ end
                 end
             end
         else
-            @test pf_status == PMs.LOCALLY_INFEASIBLE
-            @test pm_result["status"] == PMs.LOCALLY_INFEASIBLE
+            @test pf_status == LOCALLY_INFEASIBLE
+            @test pm_result["status"] == LOCALLY_INFEASIBLE
         end
     end
 end
