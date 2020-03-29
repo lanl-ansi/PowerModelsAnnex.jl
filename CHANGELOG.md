@@ -2,7 +2,7 @@ PowerModelsAnnex.jl Change Log
 ==============================
 
 ### Staged
-- nothing
+- Fixed solution reporting bug in api model
 
 ### v0.4.3
 - Update pacakge internal short names to `_PM` and `_IM`

@@ -68,7 +68,7 @@ function variable_load_factor(pm::_PM.AbstractPowerModel, report::Bool=true)
         else
             sol(pm, :load, i)[:pd] = load["pd"]
         end
-        sol(pm, :load, i)[:qd] = load["qd"]*load_factor
+        sol(pm, :load, i)[:qd] = load["qd"]
     end
 end
 
