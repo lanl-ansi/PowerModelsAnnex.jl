@@ -4,6 +4,9 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing 
 
+### v0.5.0
+- Update to PowerModels v0.16
+
 ### v0.4.4
 - Fixed solution reporting bug in api model
 
