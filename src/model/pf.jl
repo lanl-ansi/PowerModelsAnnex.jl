@@ -16,11 +16,38 @@ function build_ac_pf(data::Dict{String,Any}, model=Model())
     @variable(model, pg[i in keys(ref[:gen])])
     @variable(model, qg[i in keys(ref[:gen])])
 
-    @variable(model, p[(l,i,j) in ref[:arcs]])
-    @variable(model, q[(l,i,j) in ref[:arcs]])
-
     @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
     @variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
+
+
+    p = Dict()
+    q = Dict()
+    for (i,branch) in ref[:branch]
+        # AC Line Flow Constraint
+        f_idx = (i, branch["f_bus"], branch["t_bus"])
+        t_idx = (i, branch["t_bus"], branch["f_bus"])
+
+        vm_fr = vm[branch["f_bus"]]
+        vm_to = vm[branch["t_bus"]]
+        va_fr = va[branch["f_bus"]]
+        va_to = va[branch["t_bus"]]
+
+        # Line Flow
+        g, b = PowerModels.calc_branch_y(branch)
+        tr, ti = PowerModels.calc_branch_t(branch)
+        g_fr = branch["g_fr"]
+        b_fr = branch["b_fr"]
+        g_to = branch["g_to"]
+        b_to = branch["b_to"]
+        tm = branch["tap"]^2
+
+        p[f_idx] = @NLexpression(model,  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        q[f_idx] = @NLexpression(model, -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+
+        p[t_idx] = @NLexpression(model,  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        q[t_idx] = @NLexpression(model, -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+    end
+
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
@@ -34,7 +61,7 @@ function build_ac_pf(data::Dict{String,Any}, model=Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        @constraint(model,
+        @NLconstraint(model,
             sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
@@ -42,7 +69,7 @@ function build_ac_pf(data::Dict{String,Any}, model=Model())
             sum(shunt["gs"] for shunt in bus_shunts)*vm[i]^2
         )
 
-        @constraint(model,
+        @NLconstraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -
@@ -61,37 +88,6 @@ function build_ac_pf(data::Dict{String,Any}, model=Model())
                 @constraint(model, pg[j] == ref[:gen][j]["pg"])
             end
         end
-    end
-
-    for (i,branch) in ref[:branch]
-        # AC Line Flow Constraint
-        f_idx = (i, branch["f_bus"], branch["t_bus"])
-        t_idx = (i, branch["t_bus"], branch["f_bus"])
-
-        p_fr = p[f_idx]
-        q_fr = q[f_idx]
-        p_to = p[t_idx]
-        q_to = q[t_idx]
-
-        vm_fr = vm[branch["f_bus"]]
-        vm_to = vm[branch["t_bus"]]
-        va_fr = va[branch["f_bus"]]
-        va_to = va[branch["t_bus"]]
-
-        # Line Flow
-        g, b = PowerModels.calc_branch_y(branch)
-        tr, ti = PowerModels.calc_branch_t(branch)
-        g_fr = branch["g_fr"]
-        b_fr = branch["b_fr"]
-        g_to = branch["g_to"]
-        b_to = branch["b_to"]
-        tm = branch["tap"]^2
-
-        @NLconstraint(model, p_fr ==  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
-        @NLconstraint(model, q_fr == -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
-
-        @NLconstraint(model, p_to ==  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
-        @NLconstraint(model, q_to == -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
     end
 
     for (i,dcline) in ref[:dcline]
@@ -134,11 +130,38 @@ function build_soc_pf(data::Dict{String,Any}, model=Model())
     @variable(model, pg[i in keys(ref[:gen])])
     @variable(model, qg[i in keys(ref[:gen])])
 
-    @variable(model, p[(l,i,j) in ref[:arcs]])
-    @variable(model, q[(l,i,j) in ref[:arcs]])
-
     @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
     @variable(model, q_dc[(l,i,j) in ref[:arcs_dc]])
+
+    p = Dict()
+    q = Dict()
+    for (i,branch) in ref[:branch]
+        # AC Line Flow Constraint
+        f_idx = (i, branch["f_bus"], branch["t_bus"])
+        t_idx = (i, branch["t_bus"], branch["f_bus"])
+        bp_idx = (branch["f_bus"], branch["t_bus"])
+
+        w_fr = w[branch["f_bus"]]
+        w_to = w[branch["t_bus"]]
+        wr_br = wr[bp_idx]
+        wi_br = wi[bp_idx]
+
+        g, b = PowerModels.calc_branch_y(branch)
+        tr, ti = PowerModels.calc_branch_t(branch)
+        g_fr = branch["g_fr"]
+        b_fr = branch["b_fr"]
+        g_to = branch["g_to"]
+        b_to = branch["b_to"]
+        tm = branch["tap"]^2
+
+        p[f_idx] =  (g+g_fr)/tm*w_fr + (-g*tr+b*ti)/tm*(wr_br) + (-b*tr-g*ti)/tm*(wi_br)
+        q[f_idx] = -(b+b_fr)/tm*w_fr - (-b*tr-g*ti)/tm*(wr_br) + (-g*tr+b*ti)/tm*(wi_br)
+
+        p[t_idx] =  (g+g_to)*w_to + (-g*tr-b*ti)/tm*(wr_br) + (-b*tr+g*ti)/tm*(-wi_br)
+        q[t_idx] = -(b+b_to)*w_to - (-b*tr+g*ti)/tm*(wr_br) + (-g*tr-b*ti)/tm*(-wi_br) 
+    end
+
+
 
     for (i,j) in keys(ref[:buspairs])
         # Voltage Product Relaxation
@@ -184,37 +207,6 @@ function build_soc_pf(data::Dict{String,Any}, model=Model())
         end
     end
 
-    for (i,branch) in ref[:branch]
-        # AC Line Flow Constraint
-        f_idx = (i, branch["f_bus"], branch["t_bus"])
-        t_idx = (i, branch["t_bus"], branch["f_bus"])
-        bp_idx = (branch["f_bus"], branch["t_bus"])
-
-        p_fr = p[f_idx]
-        q_fr = q[f_idx]
-        p_to = p[t_idx]
-        q_to = q[t_idx]
-
-        w_fr = w[branch["f_bus"]]
-        w_to = w[branch["t_bus"]]
-        wr_br = wr[bp_idx]
-        wi_br = wi[bp_idx]
-
-        g, b = PowerModels.calc_branch_y(branch)
-        tr, ti = PowerModels.calc_branch_t(branch)
-        g_fr = branch["g_fr"]
-        b_fr = branch["b_fr"]
-        g_to = branch["g_to"]
-        b_to = branch["b_to"]
-        tm = branch["tap"]^2
-
-        @constraint(model, p_fr ==  (g+g_fr)/tm*w_fr + (-g*tr+b*ti)/tm*(wr_br) + (-b*tr-g*ti)/tm*(wi_br) )
-        @constraint(model, q_fr == -(b+b_fr)/tm*w_fr - (-b*tr-g*ti)/tm*(wr_br) + (-g*tr+b*ti)/tm*(wi_br) )
-
-        @constraint(model, p_to ==  (g+g_to)*w_to + (-g*tr-b*ti)/tm*(wr_br) + (-b*tr+g*ti)/tm*(-wi_br) )
-        @constraint(model, q_to == -(b+b_to)*w_to - (-b*tr+g*ti)/tm*(wr_br) + (-g*tr-b*ti)/tm*(-wi_br) )
-    end
-
     for (i,dcline) in ref[:dcline]
         # DC Line Flow Constraint
         f_idx = (i, dcline["f_bus"], dcline["t_bus"])
@@ -252,12 +244,24 @@ function build_dc_pf(data::Dict{String,Any}, model=Model())
 
     @variable(model, pg[i in keys(ref[:gen])])
 
-    @variable(model, p[(l,i,j) in ref[:arcs_from]])
-
-    p_expr = Dict([((l,i,j), 1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]])
-    p_expr = merge(p_expr, Dict([((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]]))
-
     @variable(model, p_dc[(l,i,j) in ref[:arcs_dc]])
+
+
+    p = Dict()
+    for (i,branch) in ref[:branch]
+        f_idx = (i, branch["f_bus"], branch["t_bus"])
+        t_idx = (i, branch["t_bus"], branch["f_bus"])
+
+        va_fr = va[branch["f_bus"]]
+        va_to = va[branch["t_bus"]]
+
+        # Line Flow
+        g, b = PowerModels.calc_branch_y(branch)
+
+        p[f_idx] = -b*(va_fr - va_to)
+        p[t_idx] = -b*(va_to - va_fr)
+    end
+
 
     for (i,bus) in ref[:ref_buses]
         # Refrence Bus
@@ -270,7 +274,7 @@ function build_dc_pf(data::Dict{String,Any}, model=Model())
 
         # Bus KCL
         @constraint(model,
-            sum(p_expr[a] for a in ref[:bus_arcs][i]) +
+            sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
             sum(load["pd"] for load in bus_loads) -
@@ -286,21 +290,6 @@ function build_dc_pf(data::Dict{String,Any}, model=Model())
                 @constraint(model, pg[j] == ref[:gen][j]["pg"])
             end
         end
-    end
-
-    for (i,branch) in ref[:branch]
-        # AC Line Flow Constraint
-        f_idx = (i, branch["f_bus"], branch["t_bus"])
-        t_idx = (i, branch["t_bus"], branch["f_bus"])
-
-        p_fr = p[f_idx]
-        va_fr = va[branch["f_bus"]]
-        va_to = va[branch["t_bus"]]
-
-        # Line Flow
-        g, b = PowerModels.calc_branch_y(branch)
-
-        @constraint(model, p_fr == -b*(va_fr - va_to))
     end
 
     for (i,dcline) in ref[:dcline]
