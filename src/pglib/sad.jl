@@ -7,10 +7,10 @@ end
 
 ""
 function build_opf_sad(pm::_PM.AbstractPowerModel)
-    _PM.variable_voltage(pm)
-    _PM.variable_generation(pm)
-    _PM.variable_branch_flow(pm)
-    _PM.variable_dcline_flow(pm, bounded = false)
+    _PM.variable_bus_voltage(pm)
+    _PM.variable_gen_power(pm)
+    _PM.variable_branch_power(pm)
+    _PM.variable_dcline_power(pm, bounded = false)
 
     @variable(pm.model, theta_delta_bound >= 0.0, start = 0.523598776)
 
@@ -41,6 +41,6 @@ function build_opf_sad(pm::_PM.AbstractPowerModel)
     end
 
     for i in _PM.ids(pm, :dcline)
-        _PM.constraint_dcline(pm, i)
+        _PM.constraint_dcline_power_losses(pm, i)
     end
 end

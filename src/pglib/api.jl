@@ -7,14 +7,14 @@ end
 
 ""
 function build_opf_api(pm::_PM.AbstractPowerModel)
-    _PM.variable_voltage(pm)
+    _PM.variable_bus_voltage(pm)
     bounds_tighten_voltage(pm)
 
-    _PM.variable_generation(pm, bounded = false)
+    _PM.variable_gen_power(pm, bounded = false)
     upperbound_negative_active_generation(pm)
 
-    _PM.variable_branch_flow(pm)
-    _PM.variable_dcline_flow(pm)
+    _PM.variable_branch_power(pm)
+    _PM.variable_dcline_power(pm)
 
     variable_load_factor(pm)
 
@@ -49,7 +49,7 @@ function build_opf_api(pm::_PM.AbstractPowerModel)
 
 
     for i in _PM.ids(pm, :dcline)
-        _PM.constraint_dcline(pm, i)
+        _PM.constraint_dcline_power_losses(pm, i)
     end
 end
 
