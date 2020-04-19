@@ -2,7 +2,11 @@ PowerModelsAnnex.jl Change Log
 ==============================
 
 ### Staged
-- nothing 
+- nothing
+
+### v0.6.0
+- Update to PowerModels v0.17
+- Added support for Memento v1.1
 
 ### v0.5.0
 - Update to PowerModels v0.16
