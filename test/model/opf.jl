@@ -103,7 +103,7 @@ end
                 #@test isapprox(JuMP.value(opf_model[:va][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
 
                 #println("$i, $(JuMP.value(opf_model[:vm][index])), $(pm_sol["bus"][i]["vm"])")
-                @test isapprox(JuMP.value(opf_model[:vm][index]), pm_sol["bus"][i]["vm"]; atol = 1e-6)
+                @test isapprox(JuMP.value(opf_model[:vm][index]), pm_sol["bus"][i]["vm"]; atol = 1e-5)
             end
         end
 
@@ -111,7 +111,7 @@ end
             if gen["gen_status"] != 0
                 index = parse(Int, i)
                 #println("$i, $(JuMP.value(opf_model[:pg][index])), $(pm_sol["gen"][i]["pg"])")
-                @test isapprox(JuMP.value(opf_model[:pg][index]), pm_sol["gen"][i]["pg"]; atol = 1e-6)
+                @test isapprox(JuMP.value(opf_model[:pg][index]), pm_sol["gen"][i]["pg"]; atol = 1e-5)
                 # multiple generators at one bus can cause this to be non-unqiue
                 #@test isapprox(JuMP.value(opf_model[:qg][index]), pm_sol["gen"][i]["qg"])
             end
