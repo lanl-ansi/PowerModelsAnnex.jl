@@ -18,7 +18,7 @@ end
             if bus["bus_type"] != 4
                 index = parse(Int, i)
                 #println("$i, $(JuMP.value(pf_model[:va][index])), $(pm_sol["bus"][i]["va"])")
-                @test isapprox(JuMP.value(pf_model[:va][index]), pm_sol["bus"][i]["va"]; atol = 1e-8)
+                @test isapprox(JuMP.value(pf_model[:va][index]), pm_sol["bus"][i]["va"]; atol = 1e-6)
                 @test isapprox(JuMP.value(pf_model[:vm][index]), pm_sol["bus"][i]["vm"])
             end
         end
