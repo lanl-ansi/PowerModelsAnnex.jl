@@ -27,7 +27,7 @@ end
             if gen["gen_status"] != 0
                 index = parse(Int, i)
                 #println("$i, $(JuMP.value(pf_model[:pg][index])), $(pm_sol["gen"][i]["pg"])")
-                @test isapprox(JuMP.value(pf_model[:pg][index]), pm_sol["gen"][i]["pg"]; atol = 1e-8)
+                @test isapprox(JuMP.value(pf_model[:pg][index]), pm_sol["gen"][i]["pg"]; atol = 1e-6)
                 # multiple generators at one bus can cause this to be non-unqiue
                 #@test isapprox(JuMP.value(pf_model[:qg][index]), pm_sol["gen"][i]["qg"])
             end
