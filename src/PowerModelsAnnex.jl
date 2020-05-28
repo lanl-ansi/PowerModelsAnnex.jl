@@ -25,6 +25,11 @@ include("pglib/shared.jl")
 include("pglib/api.jl")
 include("pglib/sad.jl")
 
+include("piecewise-linear/delta.jl")
+include("piecewise-linear/lambda.jl")
+include("piecewise-linear/phi.jl")
+include("piecewise-linear/psi.jl")
+
 include("frontend/frontend.jl")
 
 end
