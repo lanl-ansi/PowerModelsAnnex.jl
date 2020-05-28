@@ -1,46 +1,5 @@
 export run_opf_pwl_delta, build_opf_pwl_delta
 
-"computes the cost values that are relivent, based on min/max values"
-function get_active_cost_points(component)
-    pmin = component["pmin"]
-    pmax = component["pmax"]
-    ncost = component["ncost"]
-    points = component["cost"]
-
-    first_active = 1
-    for i in 1:(ncost-1)
-        x0 = points[2*i-1]
-        x1 = points[2*(i+1)-1]
-        if pmin >= x0
-            first_active = i
-        end
-        if pmin <= x1
-            break
-        end
-    end
-
-    last_active = ncost
-    for i in 1:(ncost-1)
-        x0 = points[end - (2*(i+1)-1)]
-        x1 = points[end - (2*i-1)]
-        if pmax <= x1
-            last_active = ncost - i + 1
-        end
-        if pmax >= x0
-            break
-        end
-    end
-
-    points = points[2*first_active - 1 : 2*last_active]
-    ncost = div(length(points), 2)
-
-    @assert points[1] <= pmin && points[1+2] >= pmin
-    @assert points[end-3] <= pmax && points[end-1] >= pmax
-
-    return ncost, points
-end
-
-
 ""
 function run_opf_pwl_delta(file, model_type::Type, optimizer; kwargs...)
     return _PM.run_model(file, model_type, optimizer, build_opf_pwl_delta; kwargs...)
@@ -114,22 +73,14 @@ function objective_variable_pg_cost_delta(pm::_PM.AbstractPowerModel, report::Bo
         pg_cost = var(pm, n)[:pg_cost] = Dict{Int,Any}()
 
         for (i,gen) in ref(pm, n, :gen)
-            pmin = gen["pmin"]
-            mws = Float64[]
-            costs = Float64[]
-
-            ncost, points = get_active_cost_points(gen)
-            for i in 1:ncost
-                push!(mws, points[2*i-1])
-                push!(costs, points[2*i])
-            end
+            points = _PM.calc_pwl_points(gen["ncost"], gen["cost"], gen["pmin"], gen["pmax"])
 
             cost_per_mw = Float64[0.0]
-            for i in 2:ncost
-                x0 = mws[i-1]
-                y0 = costs[i-1]
-                x1 = mws[i]
-                y1 = costs[i]
+            for i in 2:length(points)
+                x0 = points[i-1].mw
+                y0 = points[i-1].cost
+                x1 = points[i].mw
+                y1 = points[i].cost
 
                 m = (y1 - y0)/(x1 - x0)
                 if !isnan(m)
@@ -141,13 +92,13 @@ function objective_variable_pg_cost_delta(pm::_PM.AbstractPowerModel, report::Bo
             end
 
             pg_cost_mw = JuMP.@variable(pm.model,
-                [i in 2:ncost], base_name="$(n)_pg_cost_mw",
+                [i in 2:length(points)], base_name="$(n)_pg_cost_mw",
                 lower_bound = 0.0,
-                upper_bound = mws[i] - mws[i-1]
+                upper_bound = points[i].mw - points[i-1].mw
             )
 
-            JuMP.@constraint(pm.model, mws[1] + sum(pg_cost_mw[i] for i in 2:ncost) == sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n)))
-            pg_cost[i] = costs[1] + sum(cost_per_mw[i]*pg_cost_mw[i] for i in 2:ncost)
+            JuMP.@constraint(pm.model, points[1].mw + sum(pg_cost_mw[i] for i in 2:length(points)) == sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n)))
+            pg_cost[i] = points[1].cost + sum(cost_per_mw[i]*pg_cost_mw[i] for i in 2:length(points))
         end
 
         report && _IM.sol_component_value(pm, n, :gen, :pg_cost, ids(pm, n, :gen), pg_cost)

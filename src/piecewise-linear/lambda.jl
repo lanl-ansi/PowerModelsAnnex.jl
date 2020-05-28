@@ -70,24 +70,18 @@ function objective_variable_pg_cost_lambda(pm::_PM.AbstractPowerModel, report::B
         pg_cost = var(pm, n)[:pg_cost] = Dict{Int,Any}()
 
         for (i,gen) in ref(pm, n, :gen)
-            ncost, points = get_active_cost_points(gen)
+            points = _PM.calc_pwl_points(gen["ncost"], gen["cost"], gen["pmin"], gen["pmax"])
 
             pg_cost_lambda = JuMP.@variable(pm.model,
-                [i in 1:ncost], base_name="$(n)_pg_cost_lambda",
+                [i in 1:length(points)], base_name="$(n)_pg_cost_lambda",
                 lower_bound = 0.0,
                 upper_bound = 1.0
             )
             JuMP.@constraint(pm.model, sum(pg_cost_lambda) == 1.0)
 
-            pg_expr = 0.0
-            pg_cost_expr = 0.0
-            for i in 1:ncost
-                mw = points[2*i-1]
-                cost = points[2*i]
+            pg_expr = sum(pt.mw*pg_cost_lambda[i] for (i,pt) in enumerate(points))
+            pg_cost_expr = sum(pt.cost*pg_cost_lambda[i] for (i,pt) in enumerate(points))
 
-                pg_expr += mw*pg_cost_lambda[i]
-                pg_cost_expr += cost*pg_cost_lambda[i]
-            end
             JuMP.@constraint(pm.model, pg_expr == sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n)))
             pg_cost[i] = pg_cost_expr
         end

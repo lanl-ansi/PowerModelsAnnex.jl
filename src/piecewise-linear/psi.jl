@@ -68,42 +68,34 @@ end
 function objective_variable_pg_cost_psi(pm::_PM.AbstractPowerModel, report::Bool=true)
     for (n, nw_ref) in _PM.nws(pm)
         gen_lines = Dict{Int64,Vector}()
-        pg_cost_start = Dict{Int64,Float64}()
         pg_cost_min = Dict{Int64,Float64}()
         pg_cost_max = Dict{Int64,Float64}()
 
         for (i, gen) in nw_ref[:gen]
-            @assert gen["model"] == 1
-            ncost, points = get_active_cost_points(gen)
-
-            mws = Float64[]
-            costs = Float64[]
-            for i in 1:ncost
-                push!(mws, points[2*i-1])
-                push!(costs, points[2*i])
-            end
+            points = _PM.calc_pwl_points(gen["ncost"], gen["cost"], gen["pmin"], gen["pmax"])
 
             gen_lines[i] = []
-            for j in 3:2:length(points)
-                x1 = points[j-2]
-                y1 = points[j-1]
-                x2 = points[j-0]
-                y2 = points[j+1]
+            for j in 2:length(points)
+                x1 = points[j-1].mw
+                y1 = points[j-1].cost
+                x2 = points[j].mw
+                y2 = points[j].cost
 
                 m = (y2 - y1)/(x2 - x1)
-                b = y1 - m * x1
 
+                if !isnan(m)
+                    b = y1 - m * x1
+                else
+                    @assert isapprox(y0, y1)
+                    m = 0.0
+                    b = y0
+                end
                 push!(gen_lines[i], (slope=m, intercept=b))
             end
 
             pg_value = sum(JuMP.start_value(var(pm, n, :pg, i)[c]) for c in _PM.conductor_ids(pm, n))
-            pg_cost_value = -Inf
-            for line in gen_lines[i]
-                pg_cost_value = max(pg_cost_value, line.slope*pg_value + line.intercept)
-            end
-            pg_cost_start[i] = pg_cost_value
-            pg_cost_min[i] = costs[1]
-            pg_cost_max[i] = costs[end]
+            pg_cost_min[i] = points[1].cost
+            pg_cost_max[i] = points[end].cost
         end
 
 

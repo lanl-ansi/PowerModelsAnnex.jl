@@ -69,58 +69,41 @@ function objective_variable_pg_cost_phi(pm::_PM.AbstractPowerModel, report::Bool
         pg_cost = var(pm, n)[:pg_cost] = Dict{Int,Any}()
 
         for (i,gen) in ref(pm, n, :gen)
-            ncost, points = get_active_cost_points(gen)
+            points = _PM.calc_pwl_points(gen["ncost"], gen["cost"], gen["pmin"], gen["pmax"])
 
-            mws = Float64[]
-            costs = Float64[]
+            gen_lines = []
+            for j in 2:length(points)
+                x1 = points[j-1].mw
+                y1 = points[j-1].cost
+                x2 = points[j].mw
+                y2 = points[j].cost
 
-            for j in 1:ncost
-                push!(mws, points[2*j-1])
-                push!(costs, points[2*j])
-            end
+                m = (y2 - y1)/(x2 - x1)
 
-
-            cost_per_mw = Float64[0.0]
-            cost_per_mw_b = Float64[0.0]
-            for j in 2:ncost
-                x0 = mws[j-1]
-                y0 = costs[j-1]
-                x1 = mws[j]
-                y1 = costs[j]
-
-                m = (y1 - y0)/(x1 - x0)
                 if !isnan(m)
                     b = y1 - m * x1
-
-                    push!(cost_per_mw, m)
-                    push!(cost_per_mw_b, b)
                 else
-                    #println(y0, " ", y1)
                     @assert isapprox(y0, y1)
-                    push!(cost_per_mw, 0.0)
-                    push!(cost_per_mw_b, y0)
+                    m = 0.0
+                    b = y0
                 end
+                push!(gen_lines, (slope=m, intercept=b))
             end
-
-            # println(cost_per_mw)
-            # println(mws)
-            # println()
 
             pmax = gen["pmax"]
             pg_phi = JuMP.@variable(pm.model,
-                [j in 3:ncost], base_name="$(n)_pg_phi",
+                [j in 3:length(points)], base_name="$(n)_pg_phi",
                 lower_bound = 0.0,
-                upper_bound = pmax - mws[j-1]
+                upper_bound = pmax - points[j-1].mw
             )
 
-            for j in 3:ncost
-                JuMP.@constraint(pm.model, pg_phi[j] >= sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n)) - mws[j-1])
+            for j in 3:length(points)
+                JuMP.@constraint(pm.model, pg_phi[j] >= sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n)) - points[j-1].mw)
             end
 
-            #pg_cost[i] = cost_per_mw[2] * (sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n)) - mws[1]) + costs[1]
-            pg_cost[i] = cost_per_mw[2] * (sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n))) + cost_per_mw_b[2]
-            if ncost > 2
-                pg_cost[i] += sum((cost_per_mw[j] - cost_per_mw[j-1])*pg_phi[j] for j in 3:ncost)
+            pg_cost[i] = gen_lines[1].slope * (sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n))) + gen_lines[1].intercept
+            if length(points) > 2
+                pg_cost[i] += sum((gen_lines[j-1].slope - gen_lines[j-2].slope)*pg_phi[j] for j in 3:length(points))
             end
         end
 
