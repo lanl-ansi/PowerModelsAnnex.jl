@@ -12,7 +12,7 @@ function build_opf_pwl_lambda(pm::_PM.AbstractPowerModel)
     _PM.variable_branch_power(pm)
     _PM.variable_dcline_power(pm)
 
-    objective_min_fuel_and_flow_cost_lambda(pm)
+    objective_min_fuel_cost_lambda(pm)
 
     _PM.constraint_model_voltage(pm)
 
@@ -40,13 +40,13 @@ function build_opf_pwl_lambda(pm::_PM.AbstractPowerModel)
 end
 
 ""
-function objective_min_fuel_and_flow_cost_lambda(pm::_PM.AbstractPowerModel; kwargs...)
+function objective_min_fuel_cost_lambda(pm::_PM.AbstractPowerModel; kwargs...)
     model = _PM.check_cost_models(pm)
 
     if model == 1
-        return objective_min_fuel_and_flow_cost_pwl_lambda(pm; kwargs...)
+        return objective_min_fuel_cost_pwl_lambda(pm; kwargs...)
     elseif model == 2
-        return objective_min_fuel_and_flow_cost_polynomial(pm; kwargs...)
+        return _PM.objective_min_fuel_cost_polynomial(pm; kwargs...)
     else
         Memento.error(_LOGGER, "Only cost models of types 1 and 2 are supported at this time, given cost model type of $(model)")
     end
@@ -54,14 +54,12 @@ function objective_min_fuel_and_flow_cost_lambda(pm::_PM.AbstractPowerModel; kwa
 end
 
 ""
-function objective_min_fuel_and_flow_cost_pwl_lambda(pm::_PM.AbstractPowerModel; kwargs...)
+function objective_min_fuel_cost_pwl_lambda(pm::_PM.AbstractPowerModel; kwargs...)
     objective_variable_pg_cost_lambda(pm; kwargs...)
-    _PM.objective_variable_dc_cost(pm; kwargs...)
 
     return JuMP.@objective(pm.model, Min,
         sum(
-            sum( var(pm, n,   :pg_cost, i) for (i,gen) in nw_ref[:gen]) +
-            sum( var(pm, n, :p_dc_cost, i) for (i,dcline) in nw_ref[:dcline])
+            sum( var(pm, n,   :pg_cost, i) for (i,gen) in nw_ref[:gen])
         for (n, nw_ref) in _PM.nws(pm))
     )
 end
