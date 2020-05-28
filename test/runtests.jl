@@ -30,16 +30,21 @@ case_files = Dict(
     "case30"     => "$(pms_path)/test/data/matpower/case30.m"
 )
 
+case_file_pwl = "$(pms_path)/test/data/matpower/case5_pwlc.m"
+
+
 @testset "PowerModelsAnnex" begin
 
     include("form/acr.jl")
     include("form/wr.jl")
 
+    include("model/pf.jl")
+    include("model/opf.jl")
+
     include("pglib/api.jl")
     include("pglib/sad.jl")
 
-    include("model/pf.jl")
-    include("model/opf.jl")
+    include("piecewise-linear.jl")
 
     include("frontend/frontend.jl")
 
