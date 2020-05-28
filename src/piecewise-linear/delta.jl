@@ -41,30 +41,6 @@ function get_active_cost_points(component)
 end
 
 
-function calc_comp_lines_from_points(points)
-    line_data = []
-    for i in 3:2:length(points)
-        x1 = points[i-2]
-        y1 = points[i-1]
-        x2 = points[i-0]
-        y2 = points[i+1]
-
-        m = (y2 - y1)/(x2 - x1)
-        b = y1 - m * x1
-
-        push!(line_data, (slope=m, intercept=b))
-    end
-
-    for i in 2:length(line_data)
-        if line_data[i-1].slope > line_data[i].slope
-            Memento.error(_LOGGER, "non-convex pwl function found in points $(points)\nlines: $(line_data)")
-        end
-    end
-
-    return line_data
-end
-
-
 ""
 function run_opf_pwl_delta(file, model_type::Type, optimizer; kwargs...)
     return _PM.run_model(file, model_type, optimizer, build_opf_pwl_delta; kwargs...)

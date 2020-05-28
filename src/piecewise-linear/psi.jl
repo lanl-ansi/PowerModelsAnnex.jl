@@ -83,7 +83,19 @@ function objective_variable_pg_cost_psi(pm::_PM.AbstractPowerModel, report::Bool
                 push!(costs, points[2*i])
             end
 
-            gen_lines[i] = calc_comp_lines_from_points(points)
+            gen_lines[i] = []
+            for j in 3:2:length(points)
+                x1 = points[j-2]
+                y1 = points[j-1]
+                x2 = points[j-0]
+                y2 = points[j+1]
+
+                m = (y2 - y1)/(x2 - x1)
+                b = y1 - m * x1
+
+                push!(gen_lines[i], (slope=m, intercept=b))
+            end
+
             pg_value = sum(JuMP.start_value(var(pm, n, :pg, i)[c]) for c in _PM.conductor_ids(pm, n))
             pg_cost_value = -Inf
             for line in gen_lines[i]
