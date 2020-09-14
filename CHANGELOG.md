@@ -3,6 +3,7 @@ PowerModelsAnnex.jl Change Log
 
 ### Staged
 - Add variants of piecewise linear cost model formulations
+- Update to DataFrames v0.21
 
 ### v0.6.0
 - Update to PowerModels v0.17
