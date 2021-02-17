@@ -104,7 +104,7 @@ function objective_variable_pg_cost_psi(pm::_PM.AbstractPowerModel, report::Bool
             lower_bound = pg_cost_min[i],
             upper_bound = pg_cost_max[i]
         )
-        report && _IM.sol_component_value(pm, n, :gen, :pg_cost, ids(pm, n, :gen), pg_cost)
+        report && _PM.sol_component_value(pm, n, :gen, :pg_cost, ids(pm, n, :gen), pg_cost)
 
         # gen pwl cost
         for (i, gen) in nw_ref[:gen]

@@ -159,5 +159,5 @@ function constraint_power_balance_shunt_scaled(pm::_PM.AbstractACPModel, n::Int,
 
     @constraint(pm.model, sum(q[a] for a in bus_arcs) == sum(qg[g] for g in bus_gens) - qd + bs*vm^2)
 end
-constraint_power_balance_shunt_scaled(pm::_PM.AbstractPowerModel, i::Int) = constraint_power_balance_shunt_scaled(pm, pm.cnw, i)
+constraint_power_balance_shunt_scaled(pm::_PM.AbstractPowerModel, i::Int) = constraint_power_balance_shunt_scaled(pm, nw_id_default, i)
 

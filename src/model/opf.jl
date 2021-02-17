@@ -9,7 +9,7 @@ function build_ac_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "conductors")
 
     PowerModels.standardize_cost_terms!(data, order=2)
-    ref = PowerModels.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:it][_PM.pm_it_sym][:nw][nw_id_default]
 
     @variable(model, va[i in keys(ref[:bus])])
     @variable(model, ref[:bus][i]["vmin"] <= vm[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"], start=1.0)
@@ -143,7 +143,7 @@ function build_soc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "conductors")
 
     PowerModels.standardize_cost_terms!(data, order=2)
-    ref = PowerModels.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:it][_PM.pm_it_sym][:nw][nw_id_default]
 
     @variable(model, ref[:bus][i]["vmin"]^2 <= w[i in keys(ref[:bus])] <= ref[:bus][i]["vmax"]^2, start=1.001)
 
@@ -302,7 +302,7 @@ function build_qc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "conductors")
 
     PowerModels.standardize_cost_terms!(data, order=2)
-    ref = PowerModels.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:it][_PM.pm_it_sym][:nw][nw_id_default]
 
     # voltage angle and magnitude
     @variable(model, va[i in keys(ref[:bus])])
@@ -639,7 +639,7 @@ function build_dc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "conductors")
 
     PowerModels.standardize_cost_terms!(data, order=2)
-    ref = PowerModels.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:it][_PM.pm_it_sym][:nw][nw_id_default]
 
     @variable(model, va[i in keys(ref[:bus])])
 
