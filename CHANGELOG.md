@@ -4,6 +4,9 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.7.0
+- Update to InfrastructureModels v0.6 and PowerModels v0.18
+
 ### v0.6.1
 - Add variants of piecewise linear cost model formulations
 - Update to DataFrames v0.21

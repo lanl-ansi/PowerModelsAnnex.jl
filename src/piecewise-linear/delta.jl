@@ -101,6 +101,6 @@ function objective_variable_pg_cost_delta(pm::_PM.AbstractPowerModel, report::Bo
             pg_cost[i] = points[1].cost + sum(cost_per_mw[i]*pg_cost_mw[i] for i in 2:length(points))
         end
 
-        report && _IM.sol_component_value(pm, n, :gen, :pg_cost, ids(pm, n, :gen), pg_cost)
+        report && _PM.sol_component_value(pm, n, :gen, :pg_cost, ids(pm, n, :gen), pg_cost)
     end
 end

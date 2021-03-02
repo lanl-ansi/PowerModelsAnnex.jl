@@ -46,7 +46,7 @@ PowerModels.standardize_cost_terms!(data, order=2)
 PowerModels.calc_thermal_limits!(data)
 
 # use build_ref to filter out inactive components
-ref = PowerModels.build_ref(data)[:nw][0]
+ref = PowerModels.build_ref(data)[:it][:pm][:nw][0]
 # Note: ref contains all the relevant system parameters needed to build the OPF model
 # When we introduce constraints and variable bounds below, we use the parameters in ref.
 

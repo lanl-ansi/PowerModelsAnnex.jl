@@ -8,7 +8,7 @@ function build_ac_pf(data::Dict{String,Any}, model=Model())
     @assert !_IM.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
-    ref = PowerModels.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:it][_PM.pm_it_sym][:nw][nw_id_default]
 
     @variable(model, va[i in keys(ref[:bus])])
     @variable(model, vm[i in keys(ref[:bus])], start=1.0)
@@ -121,7 +121,7 @@ function build_soc_pf(data::Dict{String,Any}, model=Model())
     @assert !_IM.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
-    ref = PowerModels.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:it][_PM.pm_it_sym][:nw][nw_id_default]
 
     @variable(model, w[i in keys(ref[:bus])] >= 0, start=1.001)
     @variable(model, wr[bp in keys(ref[:buspairs])], start=1.0)
@@ -238,7 +238,7 @@ function build_dc_pf(data::Dict{String,Any}, model=Model())
     @assert !_IM.ismultinetwork(data)
     @assert !haskey(data, "conductors")
 
-    ref = PowerModels.build_ref(data)[:nw][0]
+    ref = PowerModels.build_ref(data)[:it][_PM.pm_it_sym][:nw][nw_id_default]
 
     @variable(model, va[i in keys(ref[:bus])])
 

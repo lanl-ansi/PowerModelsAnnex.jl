@@ -11,7 +11,7 @@ function constraint_thermal_limit_from(pm::_PM.AbstractPowerModel, n::Int, i::In
         _PM.constraint_thermal_limit_from(pm, n, f_idx, branch["rate_a"]*scale)
     end
 end
-constraint_thermal_limit_from(pm::_PM.AbstractPowerModel, i::Int; scale = 1.0) = constraint_thermal_limit_from(pm, pm.cnw, i; scale=scale)
+constraint_thermal_limit_from(pm::_PM.AbstractPowerModel, i::Int; scale = 1.0) = constraint_thermal_limit_from(pm, nw_id_default, i; scale=scale)
 
 ""
 function constraint_thermal_limit_to(pm::_PM.AbstractPowerModel, n::Int, i::Int; scale = 1.0)
@@ -24,6 +24,6 @@ function constraint_thermal_limit_to(pm::_PM.AbstractPowerModel, n::Int, i::Int;
         _PM.constraint_thermal_limit_to(pm, n, t_idx, branch["rate_a"]*scale)
     end
 end
-constraint_thermal_limit_to(pm::_PM.AbstractPowerModel, i::Int; scale = 1.0) = constraint_thermal_limit_to(pm, pm.cnw, i; scale=scale)
+constraint_thermal_limit_to(pm::_PM.AbstractPowerModel, i::Int; scale = 1.0) = constraint_thermal_limit_to(pm, nw_id_default, i; scale=scale)
 
 
