@@ -16,7 +16,7 @@ PowerSystemsUnits = "c279aad7-7dc9-58d3-995b-109d3f5deb94"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
-DataFrames = "~0.19, ~0.20, ~0.21, ~0.22"
+DataFrames = "~0.19, ~0.20, ~0.21, ~0.22, 1.1"
 InfrastructureModels = "~0.6"
 JuMP = "~0.21"
 MathOptInterface = "~0.9"
