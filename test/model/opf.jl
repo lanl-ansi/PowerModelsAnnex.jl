@@ -170,7 +170,8 @@ end
 
 function run_file(file_name)
     include(file_name)
-    return nlp_optimizer, data, termination_status(model), cost
+    optimizer = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level"=>0)
+    return optimizer, data, termination_status(model), cost
 end
 
 

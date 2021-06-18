@@ -21,13 +21,6 @@ using Ipopt
 using JuMP
 
 
-# Instancate a Solver
-#--------------------
-
-nlp_optimizer = with_optimizer(Ipopt.Optimizer, print_level=0)
-# note: print_level changes the amount of solver information printed to the terminal
-
-
 # Load System Data
 # ----------------
 powermodels_path = joinpath(dirname(pathof(PowerModels)), "..")
@@ -57,7 +50,10 @@ ref = PowerModels.build_ref(data)[:it][:pm][:nw][0]
 
 # Initialize a JuMP Optimization Model
 #-------------------------------------
-model = Model(nlp_optimizer)
+model = Model(Ipopt.Optimizer)
+
+set_optimizer_attribute(model, "print_level", 0)
+# note: print_level changes the amount of solver information printed to the terminal
 
 
 # Add Optimization and State Variables

@@ -24,8 +24,7 @@ using PowerModels
 using JuMP
 using Ipopt
 
-ipopt = Ipopt.Optimizer
-model = Model(with_optimizer(ipopt))
+model = Model(Ipopt.Optimizer)
 
 data = PowerModels.parse_file("case3.m")
 build_ac_opf(data, model)

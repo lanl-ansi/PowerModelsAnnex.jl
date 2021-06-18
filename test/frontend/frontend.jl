@@ -129,7 +129,7 @@ end
     @test converged(net) == false
     res = run_dc_opf(
         PMA.pmc(net),
-        with_optimizer(Ipopt.Optimizer, print_level=0),
+        optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0),
         setting=Dict("output" => Dict("duals" => true))
     )
     for k in keys(res)
