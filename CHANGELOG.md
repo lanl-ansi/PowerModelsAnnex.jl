@@ -6,6 +6,7 @@ PowerModelsAnnex.jl Change Log
 
 ### v0.7.1
 - Add support for Memento v1.2
+- Update use of `with_optimizer` to `optimizer_with_attributes`
 
 ### v0.7.0
 - Update to InfrastructureModels v0.6 and PowerModels v0.18
