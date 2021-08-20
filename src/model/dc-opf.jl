@@ -67,7 +67,7 @@ set_optimizer_attribute(model, "print_level", 0)
 @variable(model, ref[:gen][i]["pmin"] <= pg[i in keys(ref[:gen])] <= ref[:gen][i]["pmax"])
 
 # Add power flow variables p to represent the active power flow for each branch
-@variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs]] <= ref[:branch][l]["rate_a"])
+@variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs_from]] <= ref[:branch][l]["rate_a"])
 
 # Build JuMP expressions for the value of p[(l,i,j)] and p[(l,j,i)] on the branches
 p_expr = Dict([((l,i,j), 1.0*p[(l,i,j)]) for (l,i,j) in ref[:arcs_from]])
