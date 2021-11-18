@@ -1,5 +1,5 @@
 using DataFrames
-using MathOptInterface: OPTIMAL, LOCALLY_SOLVED, ALMOST_OPTIMAL, ALMOST_LOCALLY_SOLVED
+using JuMP: OPTIMAL, LOCALLY_SOLVED, ALMOST_OPTIMAL, ALMOST_LOCALLY_SOLVED
 using Memento
 using Missings
 using Unitful
