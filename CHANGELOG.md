@@ -4,6 +4,9 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.8.1
+- Add support for Memento v1.3
+
 ### v0.8.0
 - Update to JuMP v0.22, PowerModels v0.19
 - Drop support for JuMP v0.21
