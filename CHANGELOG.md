@@ -6,6 +6,7 @@ PowerModelsAnnex.jl Change Log
 
 ### v0.8.2
 - Add support for JuMP v0.23
+- Update minimum Julia version to v1.6 (LTS)
 
 ### v0.8.1
 - Add support for Memento v1.3
