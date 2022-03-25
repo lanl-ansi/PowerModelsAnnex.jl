@@ -4,6 +4,9 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.8.3
+- Add support for JuMP v1.0
+
 ### v0.8.2
 - Add support for JuMP v0.23
 - Update minimum Julia version to v1.6 (LTS)
