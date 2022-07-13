@@ -127,7 +127,7 @@ end
     @test_throws UndefVarError stripunits!(Dict{String, AbstractArray}())
 
     @test converged(net) == false
-    res = run_dc_opf(
+    res = solve_dc_opf(
         PMA.pmc(net),
         optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0),
         setting=Dict("output" => Dict("duals" => true))

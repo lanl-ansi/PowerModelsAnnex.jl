@@ -1,8 +1,8 @@
-export run_opf_api
+export solve_opf_api
 
 ""
-function run_opf_api(file, model_constructor, optimizer; kwargs...)
-    return _PM.run_model(file, model_constructor, optimizer, build_opf_api; kwargs...)
+function solve_opf_api(file, model_constructor, optimizer; kwargs...)
+    return _PM.solve_model(file, model_constructor, optimizer, build_opf_api; kwargs...)
 end
 
 ""

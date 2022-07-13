@@ -4,6 +4,10 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.8.4
+- Update PowerModels `run_*` functions to `solve_*`
+- Add support for Memento v1.4
+
 ### v0.8.3
 - Add support for JuMP v1.0
 

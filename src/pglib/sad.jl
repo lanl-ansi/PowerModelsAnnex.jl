@@ -1,8 +1,8 @@
-export run_opf_sad
+export solve_opf_sad
 
 ""
-function run_opf_sad(file, model_constructor, optimizer; kwargs...)
-    return _PM.run_model(file, model_constructor, optimizer, build_opf_sad; kwargs...)
+function solve_opf_sad(file, model_constructor, optimizer; kwargs...)
+    return _PM.solve_model(file, model_constructor, optimizer, build_opf_sad; kwargs...)
 end
 
 ""

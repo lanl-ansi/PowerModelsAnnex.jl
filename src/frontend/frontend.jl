@@ -1059,12 +1059,12 @@ SOCWRPowerModel(net::Network) = SOCWRPowerModel(pmc(net))
 QCWRPowerModel(net::Network) = QCWRPowerModel(pmc(net))
 
 # Run OPF
-run_dc_opf(net::Network, solver) = run_dc_opf(pmc(net), solver)
-run_dc_opf(net::Network) = run_dc_opf(pmc(net))
-run_ac_opf(net::Network, solver) = run_ac_opf(pmc(net), solver)
-run_ac_opf(net::Network) = run_ac_opf(pmc(net))
-run_opf(net::Network, model::DataType, solver) = run_opf(pmc(net), model, solver)
-run_opf(net::Network, model::DataType) = run_opf(pmc(net), model)
+solve_dc_opf(net::Network, solver) = solve_dc_opf(pmc(net), solver)
+solve_dc_opf(net::Network) = solve_dc_opf(pmc(net))
+solve_ac_opf(net::Network, solver) = solve_ac_opf(pmc(net), solver)
+solve_ac_opf(net::Network) = solve_ac_opf(pmc(net))
+solve_opf(net::Network, model::DataType, solver) = solve_opf(pmc(net), model, solver)
+solve_opf(net::Network, model::DataType) = solve_opf(pmc(net), model)
 
 # Extract results
 """

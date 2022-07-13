@@ -1,8 +1,8 @@
-export run_opf_pwl_psi, build_opf_pwl_psi
+export solve_opf_pwl_psi, build_opf_pwl_psi
 
 ""
-function run_opf_pwl_psi(file, model_type::Type, optimizer; kwargs...)
-    return _PM.run_model(file, model_type, optimizer, build_opf_pwl_psi; kwargs...)
+function solve_opf_pwl_psi(file, model_type::Type, optimizer; kwargs...)
+    return _PM.solve_model(file, model_type, optimizer, build_opf_pwl_psi; kwargs...)
 end
 
 "a variant of the OPF problem specification that uses a max variant of the pwl cost function implementation"

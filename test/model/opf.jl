@@ -1,5 +1,5 @@
 
-function run_ac_opf_model(data, optimizer)
+function solve_ac_opf_model(data, optimizer)
     model = build_ac_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
@@ -8,8 +8,8 @@ end
 @testset "test ac polar opf" begin
     @testset "case $(name)" for (name, case_file) in case_files
         data = parse_file(case_file)
-        opf_status, opf_model = run_ac_opf_model(data, ipopt_solver)
-        pm_result = run_ac_opf(data, ipopt_solver)
+        opf_status, opf_model = solve_ac_opf_model(data, ipopt_solver)
+        pm_result = solve_ac_opf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         @test isapprox(JuMP.objective_value(opf_model), pm_result["objective"]; atol = 1e-5)
@@ -38,7 +38,7 @@ end
     end
 end
 
-function run_soc_opf_model(data, optimizer)
+function solve_soc_opf_model(data, optimizer)
     model =  build_soc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
@@ -47,8 +47,8 @@ end
 @testset "test soc w opf" begin
     @testset "case $(name)" for (name, case_file) in case_files
         data = parse_file(case_file)
-        opf_status, opf_model = run_soc_opf_model(data, ipopt_solver)
-        pm_result = run_opf(data, SOCWRPowerModel, ipopt_solver)
+        opf_status, opf_model = solve_soc_opf_model(data, ipopt_solver)
+        pm_result = solve_opf(data, SOCWRPowerModel, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         @test isapprox(JuMP.objective_value(opf_model), pm_result["objective"]; atol = 1e-5)
@@ -79,7 +79,7 @@ end
 end
 
 
-function run_qc_opf_model(data, optimizer)
+function solve_qc_opf_model(data, optimizer)
     model =  build_qc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
@@ -88,8 +88,8 @@ end
 @testset "test qc w+l opf" begin
     @testset "case $(name)" for (name, case_file) in case_files
         data = parse_file(case_file)
-        opf_status, opf_model = run_qc_opf_model(data, ipopt_solver)
-        pm_result = run_opf(data, QCLSPowerModel, ipopt_solver)
+        opf_status, opf_model = solve_qc_opf_model(data, ipopt_solver)
+        pm_result = solve_opf(data, QCLSPowerModel, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         @test isapprox(JuMP.objective_value(opf_model), pm_result["objective"]; atol = 1e-5)
@@ -120,7 +120,7 @@ end
 end
 
 
-function run_dc_opf_model(data, optimizer)
+function solve_dc_opf_model(data, optimizer)
     model = build_dc_opf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
@@ -129,8 +129,8 @@ end
 @testset "test dc polar opf" begin
     @testset "case $(name)" for (name, case_file) in case_files
         data = parse_file(case_file)
-        opf_status, opf_model = run_dc_opf_model(data, ipopt_solver)
-        pm_result = run_dc_opf(data, ipopt_solver)
+        opf_status, opf_model = solve_dc_opf_model(data, ipopt_solver)
+        pm_result = solve_dc_opf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         #println(opf_status)
@@ -168,7 +168,7 @@ end
 
 
 
-function run_file(file_name)
+function solve_file(file_name)
     include(file_name)
     optimizer = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level"=>0)
     return optimizer, data, termination_status(model), cost
@@ -176,15 +176,15 @@ end
 
 
 @testset "test ac polar opf" begin
-    optimizer, data, status, cost = run_file("../../src/model/ac-opf.jl")
-    pm_result = run_ac_opf(data, optimizer)
+    optimizer, data, status, cost = solve_file("../../src/model/ac-opf.jl")
+    pm_result = solve_ac_opf(data, optimizer)
     @test isapprox(cost, pm_result["objective"]; atol = 1e-6)
 end
 
 
 @testset "test dc polar opf" begin
-    optimizer, data, status, cost = run_file("../../src/model/dc-opf.jl")
-    pm_result = run_dc_opf(data, optimizer)
+    optimizer, data, status, cost = solve_file("../../src/model/dc-opf.jl")
+    pm_result = solve_dc_opf(data, optimizer)
     @test isapprox(cost, pm_result["objective"]; atol = 1e-6)
 end
 

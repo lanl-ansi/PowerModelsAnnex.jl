@@ -1,5 +1,5 @@
 
-function run_ac_pf_model(data, optimizer)
+function solve_ac_pf_model(data, optimizer)
     model = build_ac_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
@@ -8,8 +8,8 @@ end
 @testset "test ac polar pf" begin
     @testset "case $(name)" for (name, case_file) in case_files
         data = parse_file(case_file)
-        pf_status, pf_model = run_ac_pf_model(data, ipopt_solver)
-        pm_result = run_ac_pf(data, ipopt_solver)
+        pf_status, pf_model = solve_ac_pf_model(data, ipopt_solver)
+        pm_result = solve_ac_pf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         base_mva = data["baseMVA"]
@@ -35,7 +35,7 @@ end
     end
 end
 
-function run_soc_pf_model(data, optimizer)
+function solve_soc_pf_model(data, optimizer)
     model = build_soc_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
@@ -47,8 +47,8 @@ end
             # case3 started failing 06/18/2021 with latest package version, case5_dc started working againg
             # case5_dc started failing 05/22/2020 when ipopt moved to jll artifacts
             data = parse_file(case_file)
-            pf_status, pf_model = run_soc_pf_model(data, ipopt_solver)
-            pm_result = run_pf(data, SOCWRPowerModel, ipopt_solver)
+            pf_status, pf_model = solve_soc_pf_model(data, ipopt_solver)
+            pm_result = solve_pf(data, SOCWRPowerModel, ipopt_solver)
             pm_sol = pm_result["solution"]
 
             #println(pf_status)
@@ -79,7 +79,7 @@ end
     end
 end
 
-function run_dc_pf_model(data, optimizer)
+function solve_dc_pf_model(data, optimizer)
     model = build_dc_pf(data, JuMP.Model(optimizer))
     JuMP.optimize!(model)
     return JuMP.termination_status(model), model
@@ -88,8 +88,8 @@ end
 @testset "test dc polar pf" begin
     @testset "case $(name)" for (name, case_file) in case_files
         data = parse_file(case_file)
-        pf_status, pf_model = run_dc_pf_model(data, ipopt_solver)
-        pm_result = run_dc_pf(data, ipopt_solver)
+        pf_status, pf_model = solve_dc_pf_model(data, ipopt_solver)
+        pm_result = solve_dc_pf(data, ipopt_solver)
         pm_sol = pm_result["solution"]
 
         #println(pf_status)
