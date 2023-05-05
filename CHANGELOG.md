@@ -4,6 +4,9 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.8.5
+- Add closest operating point formulation `solve_opf_cop`
+
 ### v0.8.4
 - Update PowerModels `run_*` functions to `solve_*`
 - Add support for Memento v1.4
