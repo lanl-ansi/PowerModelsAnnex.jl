@@ -1,6 +1,6 @@
 # PowerModelsAnnex.jl
 Dev:
-[![Build Status](https://travis-ci.org/lanl-ansi/PowerModelsAnnex.jl.svg?branch=master)](https://travis-ci.org/lanl-ansi/PowerModelsAnnex.jl)
+[![CI](https://github.com/lanl-ansi/PowerModelsAnnex.jl/workflows/CI/badge.svg)](https://github.com/lanl-ansi/PowerModelsAnnex.jl/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/lanl-ansi/PowerModelsAnnex.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/lanl-ansi/PowerModelsAnnex.jl)
 
 [PowerModels.jl](https://github.com/lanl-ansi/PowerModels.jl) provides an implementation reference for *established* formulations and methods in power system optimization, and hence is is not an appropriate location for more exploratory work.  PowerModelsAnnex.jl is an extension of PowerModels.jl that provides a home for open-source sharing of preliminary and/or exploratory methods in power system optimization.
