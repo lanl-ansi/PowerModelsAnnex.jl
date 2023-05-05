@@ -18,6 +18,8 @@ include("form/acr.jl")
 include("form/wr.jl")
 include("form/shared.jl")
 
+include("prob/opf.jl")
+
 include("model/pf.jl")
 include("model/opf.jl")
 

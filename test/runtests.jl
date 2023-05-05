@@ -38,6 +38,8 @@ case_file_pwl = "$(pms_path)/test/data/matpower/case5_pwlc.m"
     include("form/acr.jl")
     include("form/wr.jl")
 
+    include("opf.jl")
+
     include("model/pf.jl")
     include("model/opf.jl")
 
