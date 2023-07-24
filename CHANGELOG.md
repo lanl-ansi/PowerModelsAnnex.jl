@@ -4,6 +4,9 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.9.0
+- Revise `solve_opf_api` to consider reactive power dispatch
+
 ### v0.8.5
 - Add closest operating point formulation `solve_opf_cop`
 
