@@ -45,7 +45,7 @@ function objective_min_fuel_cost_lambda(pm::_PM.AbstractPowerModel; kwargs...)
 
     nl = nl_gen || typeof(pm) <: _PM.AbstractIVRModel
 
-    expression_pg_cost_delta(pm; kwargs...)
+    expression_pg_cost_lambda(pm; kwargs...)
 
     if !nl
         return JuMP.@objective(pm.model, Min,
@@ -106,7 +106,7 @@ end
 function _pwl_cost_expression_lambda(pm::_PM.AbstractPowerModel, x_list::Array{JuMP.VariableRef}, points; nw=0, id=1, var_name="x")
 
     pg_cost_lambda = JuMP.@variable(pm.model,
-        [i in 1:length(points)], base_name="$(n)_pg_$(id)_cost_lambda_$(i)",
+        [i in 1:length(points)], base_name="$(nw)_pg_$(id)_cost_lambda_$(i)",
         lower_bound = 0.0,
         upper_bound = 1.0
     )
