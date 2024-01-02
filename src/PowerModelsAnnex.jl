@@ -32,6 +32,4 @@ include("piecewise-linear/lambda.jl")
 include("piecewise-linear/phi.jl")
 include("piecewise-linear/psi.jl")
 
-include("frontend/frontend.jl")
-
 end

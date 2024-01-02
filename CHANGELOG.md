@@ -6,6 +6,7 @@ PowerModelsAnnex.jl Change Log
 
 ### v0.9.0
 - Update PowerModels v0.20
+- Drop `frontend` directory, lack of maintenance of dependent packages
 - Drop `islanding` directory, no tests
 
 ### v0.8.5
