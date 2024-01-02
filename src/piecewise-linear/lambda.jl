@@ -41,52 +41,83 @@ end
 
 ""
 function objective_min_fuel_cost_lambda(pm::_PM.AbstractPowerModel; kwargs...)
-    model = _PM.check_cost_models(pm)
+    nl_gen = _PM.check_nl_gen_cost_models(pm)
 
-    if model == 1
-        return objective_min_fuel_cost_pwl_lambda(pm; kwargs...)
-    elseif model == 2
-        return _PM.objective_min_fuel_cost_polynomial(pm; kwargs...)
+    nl = nl_gen || typeof(pm) <: _PM.AbstractIVRModel
+
+    expression_pg_cost_delta(pm; kwargs...)
+
+    if !nl
+        return JuMP.@objective(pm.model, Min,
+            sum(
+                sum( var(pm, n, :pg_cost, i) for (i,gen) in nw_ref[:gen])
+            for (n, nw_ref) in _PM.nws(pm))
+        )
     else
-        Memento.error(_LOGGER, "Only cost models of types 1 and 2 are supported at this time, given cost model type of $(model)")
-    end
+        pg_cost = Dict()
+        for (n, nw_ref) in nws(pm)
+            for (i,gen) in nw_ref[:gen]
+                pg_cost[(n,i)] = var(pm, n, :pg_cost, i)
+            end
+        end
 
+        return JuMP.@NLobjective(pm.model, Min,
+            sum(
+                sum( pg_cost[n,i] for (i,gen) in nw_ref[:gen])
+            for (n, nw_ref) in _PM.nws(pm))
+        )
+    end
 end
 
 ""
-function objective_min_fuel_cost_pwl_lambda(pm::_PM.AbstractPowerModel; kwargs...)
-    objective_variable_pg_cost_lambda(pm; kwargs...)
-
-    return JuMP.@objective(pm.model, Min,
-        sum(
-            sum( var(pm, n,   :pg_cost, i) for (i,gen) in nw_ref[:gen])
-        for (n, nw_ref) in _PM.nws(pm))
-    )
-end
-
-"adds pg_cost variables and constraints"
-function objective_variable_pg_cost_lambda(pm::_PM.AbstractPowerModel, report::Bool=true)
+function expression_pg_cost_lambda(pm::_PM.AbstractPowerModel; report::Bool=true)
     for (n, nw_ref) in _PM.nws(pm)
         pg_cost = var(pm, n)[:pg_cost] = Dict{Int,Any}()
 
         for (i,gen) in ref(pm, n, :gen)
-            points = _PM.calc_pwl_points(gen["ncost"], gen["cost"], gen["pmin"], gen["pmax"])
+            pg_terms = [var(pm, n, :pg, i)]
 
-            pg_cost_lambda = JuMP.@variable(pm.model,
-                [i in 1:length(points)], base_name="$(n)_pg_cost_lambda",
-                lower_bound = 0.0,
-                upper_bound = 1.0
-            )
-            JuMP.@constraint(pm.model, sum(pg_cost_lambda) == 1.0)
+            if gen["model"] == 1
+                if isa(pg_terms, Array{JuMP.VariableRef})
+                    pmin = sum(JuMP.lower_bound.(pg_terms))
+                    pmax = sum(JuMP.upper_bound.(pg_terms))
+                else
+                    pmin = gen["pmin"]
+                    pmax = gen["pmax"]
+                end
 
-            pg_expr = sum(pt.mw*pg_cost_lambda[i] for (i,pt) in enumerate(points))
-            pg_cost_expr = sum(pt.cost*pg_cost_lambda[i] for (i,pt) in enumerate(points))
+                points = _PM.calc_pwl_points(gen["ncost"], gen["cost"], pmin, pmax)
+                pg_cost[i] = _pwl_cost_expression_lambda(pm, pg_terms, points, nw=n, id=i, var_name="pg")
 
-            JuMP.@constraint(pm.model, pg_expr == sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n)))
-            pg_cost[i] = pg_cost_expr
+            elseif gen["model"] == 2
+                cost_rev = reverse(gen["cost"])
+
+                pg_cost[i] = _PM._polynomial_cost_expression(pm, pg_terms, cost_rev, nw=n, id=i, var_name="pg")
+            else
+                Memento.error(_LOGGER, "Only cost models of types 1 and 2 are supported at this time, given cost model type of $(model) on generator $(i)")
+            end
         end
 
         report && _PM.sol_component_value(pm, n, :gen, :pg_cost, ids(pm, n, :gen), pg_cost)
     end
+end
+
+""
+function _pwl_cost_expression_lambda(pm::_PM.AbstractPowerModel, x_list::Array{JuMP.VariableRef}, points; nw=0, id=1, var_name="x")
+
+    pg_cost_lambda = JuMP.@variable(pm.model,
+        [i in 1:length(points)], base_name="$(n)_pg_$(id)_cost_lambda_$(i)",
+        lower_bound = 0.0,
+        upper_bound = 1.0
+    )
+    JuMP.@constraint(pm.model, sum(pg_cost_lambda) == 1.0)
+
+    pg_expr = sum(pt.mw*pg_cost_lambda[i] for (i,pt) in enumerate(points))
+    pg_cost_expr = sum(pt.cost*pg_cost_lambda[i] for (i,pt) in enumerate(points))
+
+    JuMP.@constraint(pm.model, pg_expr == var(pm, nw, :pg, id))
+
+    return pg_cost_expr
+
 end
 
