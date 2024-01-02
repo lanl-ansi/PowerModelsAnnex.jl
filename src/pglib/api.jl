@@ -18,9 +18,9 @@ function build_opf_api(pm::_PM.AbstractPowerModel)
 
     variable_load_factor(pm)
 
-    objective_max_loading(pm)
+    #objective_max_loading(pm)
     #objective_max_loading_voltage_norm(pm)
-    #objective_max_loading_gen_output(pm)
+    objective_max_loading_gen_output(pm)
 
     _PM.constraint_model_voltage(pm)
 
@@ -97,7 +97,7 @@ function objective_max_loading_gen_output(pm::_PM.AbstractPowerModel)
     pg = var(pm, :pg)
     qg = var(pm, :qg)
 
-    @NLobjective(pm.model, Max, 100*scale*load_factor - sum( (pg[i]^2 - (2*qg[i])^2)^2 for (i,gen) in ref(pm, :gen)))
+    @objective(pm.model, Max, 100*scale*load_factor - sum( ((gen["qmin"] + gen["qmax"])/2 - qg[i])^2 for (i,gen) in ref(pm, :gen)))
 end
 
 ""

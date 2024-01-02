@@ -8,6 +8,7 @@ PowerModelsAnnex.jl Change Log
 - Update PowerModels v0.20
 - Drop `frontend` directory, lack of maintenance on dependent packages
 - Drop `islanding` directory, no tests
+- Revise `solve_opf_api` to consider reactive power dispatch
 
 ### v0.8.5
 - Add closest operating point formulation `solve_opf_cop`
