@@ -6,6 +6,7 @@ PowerModelsAnnex.jl Change Log
 
 ### v0.9.0
 - Update PowerModels v0.20
+- Drop `islanding` directory, no tests
 
 ### v0.8.5
 - Add closest operating point formulation `solve_opf_cop`
