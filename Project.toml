@@ -2,7 +2,7 @@ name = "PowerModelsAnnex"
 uuid = "6e471128-d39d-5672-b02b-a742bd1b77ed"
 authors = ["Carleton Coffrin, et. al."]
 repo = "https://github.com/lanl-ansi/PowerModelsAnnex.jl"
-version = "0.9.0"
+version = "0.10.0"
 
 [deps]
 InfrastructureModels = "2030c09a-7f63-5d83-885d-db604e0e9cc0"
