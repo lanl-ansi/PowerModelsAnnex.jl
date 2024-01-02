@@ -5,6 +5,9 @@ PowerModelsAnnex.jl Change Log
 - nothing
 
 ### v0.9.0
+- Update PowerModels v0.20
+- Drop `frontend` directory, lack of maintenance on dependent packages
+- Drop `islanding` directory, no tests
 - Revise `solve_opf_api` to consider reactive power dispatch
 
 ### v0.8.5

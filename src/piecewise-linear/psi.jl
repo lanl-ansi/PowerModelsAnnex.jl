@@ -41,77 +41,100 @@ end
 
 ""
 function objective_min_fuel_cost_psi(pm::_PM.AbstractPowerModel; kwargs...)
-    model = _PM.check_cost_models(pm)
+    nl_gen = _PM.check_nl_gen_cost_models(pm)
 
-    if model == 1
-        return objective_min_fuel_cost_pwl_psi(pm; kwargs...)
-    elseif model == 2
-        return _PM.objective_min_fuel_cost_polynomial(pm; kwargs...)
+    nl = nl_gen || typeof(pm) <: _PM.AbstractIVRModel
+
+    expression_pg_cost_psi(pm; kwargs...)
+
+    if !nl
+        return JuMP.@objective(pm.model, Min,
+            sum(
+                sum( var(pm, n, :pg_cost, i) for (i,gen) in nw_ref[:gen])
+            for (n, nw_ref) in _PM.nws(pm))
+        )
     else
-        Memento.error(_LOGGER, "Only cost models of types 1 and 2 are supported at this time, given cost model type of $(model)")
-    end
+        pg_cost = Dict()
+        for (n, nw_ref) in nws(pm)
+            for (i,gen) in nw_ref[:gen]
+                pg_cost[(n,i)] = var(pm, n, :pg_cost, i)
+            end
+        end
 
+        return JuMP.@NLobjective(pm.model, Min,
+            sum(
+                sum( pg_cost[n,i] for (i,gen) in nw_ref[:gen])
+            for (n, nw_ref) in _PM.nws(pm))
+        )
+    end
 end
 
 ""
-function objective_min_fuel_cost_pwl_psi(pm::_PM.AbstractPowerModel; kwargs...)
-    objective_variable_pg_cost_psi(pm; kwargs...)
+function expression_pg_cost_psi(pm::_PM.AbstractPowerModel; report::Bool=true)
+    for (n, nw_ref) in _PM.nws(pm)
+        pg_cost = var(pm, n)[:pg_cost] = Dict{Int,Any}()
 
-    return JuMP.@objective(pm.model, Min,
-        sum(
-            sum( var(pm, n,   :pg_cost, i) for (i,gen) in nw_ref[:gen])
-        for (n, nw_ref) in _PM.nws(pm))
-    )
+        for (i,gen) in ref(pm, n, :gen)
+            pg_terms = [var(pm, n, :pg, i)]
+
+            if gen["model"] == 1
+                if isa(pg_terms, Array{JuMP.VariableRef})
+                    pmin = sum(JuMP.lower_bound.(pg_terms))
+                    pmax = sum(JuMP.upper_bound.(pg_terms))
+                else
+                    pmin = gen["pmin"]
+                    pmax = gen["pmax"]
+                end
+
+                points = _PM.calc_pwl_points(gen["ncost"], gen["cost"], pmin, pmax)
+                pg_cost[i] = _pwl_cost_expression_psi(pm, pg_terms, points, nw=n, id=i, var_name="pg")
+
+            elseif gen["model"] == 2
+                cost_rev = reverse(gen["cost"])
+
+                pg_cost[i] = _PM._polynomial_cost_expression(pm, pg_terms, cost_rev, nw=n, id=i, var_name="pg")
+            else
+                Memento.error(_LOGGER, "Only cost models of types 1 and 2 are supported at this time, given cost model type of $(model) on generator $(i)")
+            end
+        end
+
+        report && _PM.sol_component_value(pm, n, :gen, :pg_cost, ids(pm, n, :gen), pg_cost)
+    end
 end
 
-"adds pg_cost variables and constraints"
-function objective_variable_pg_cost_psi(pm::_PM.AbstractPowerModel, report::Bool=true)
-    for (n, nw_ref) in _PM.nws(pm)
-        gen_lines = Dict{Int64,Vector}()
-        pg_cost_min = Dict{Int64,Float64}()
-        pg_cost_max = Dict{Int64,Float64}()
+""
+function _pwl_cost_expression_psi(pm::_PM.AbstractPowerModel, x_list::Array{JuMP.VariableRef}, points; nw=0, id=1, var_name="x")
 
-        for (i, gen) in nw_ref[:gen]
-            points = _PM.calc_pwl_points(gen["ncost"], gen["cost"], gen["pmin"], gen["pmax"])
+    gen_lines = []
+    for j in 2:length(points)
+        x1 = points[j-1].mw
+        y1 = points[j-1].cost
+        x2 = points[j].mw
+        y2 = points[j].cost
 
-            gen_lines[i] = []
-            for j in 2:length(points)
-                x1 = points[j-1].mw
-                y1 = points[j-1].cost
-                x2 = points[j].mw
-                y2 = points[j].cost
+        m = (y2 - y1)/(x2 - x1)
 
-                m = (y2 - y1)/(x2 - x1)
-
-                if !isnan(m)
-                    b = y1 - m * x1
-                else
-                    @assert isapprox(y0, y1)
-                    m = 0.0
-                    b = y0
-                end
-                push!(gen_lines[i], (slope=m, intercept=b))
-            end
-
-            pg_value = sum(JuMP.start_value(var(pm, n, :pg, i)[c]) for c in _PM.conductor_ids(pm, n))
-            pg_cost_min[i] = points[1].cost
-            pg_cost_max[i] = points[end].cost
+        if !isnan(m)
+            b = y1 - m * x1
+        else
+            @assert isapprox(y1, y2)
+            m = 0.0
+            b = y1
         end
-
-
-        pg_cost = var(pm, n)[:pg_cost] = JuMP.@variable(pm.model,
-            [i in ids(pm, n, :gen)], base_name="$(n)_pg_cost",
-            lower_bound = pg_cost_min[i],
-            upper_bound = pg_cost_max[i]
-        )
-        report && _PM.sol_component_value(pm, n, :gen, :pg_cost, ids(pm, n, :gen), pg_cost)
-
-        # gen pwl cost
-        for (i, gen) in nw_ref[:gen]
-            for line in gen_lines[i]
-                JuMP.@constraint(pm.model, pg_cost[i] >= line.slope*sum(var(pm, n, :pg, i)[c] for c in _PM.conductor_ids(pm, n)) + line.intercept)
-            end
-        end
+        push!(gen_lines, (slope=m, intercept=b))
     end
+
+    pg_cost = JuMP.@variable(pm.model,
+        base_name="$(nw)_pg_$(id)_cost",
+        lower_bound = points[1].cost,
+        upper_bound = points[end].cost
+    )
+
+    for line in gen_lines
+        JuMP.@constraint(pm.model, pg_cost >= line.slope*var(pm, nw, :pg, id) + line.intercept)
+    end
+
+    return pg_cost
+
 end
 

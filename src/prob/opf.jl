@@ -42,7 +42,6 @@ end
 
 function objective_min_pg_vm_distance(pm::_PM.AbstractPowerModel)
     nws = _PM.nw_ids(pm)
-    @assert all(!_PM.ismulticonductor(pm, n) for n in nws)
 
     return JuMP.@objective(pm.model, Min,
         sum(
@@ -54,7 +53,6 @@ end
 
 function objective_min_pg_vm_distance(pm::_PM.AbstractActivePowerModel)
     nws = _PM.nw_ids(pm)
-    @assert all(!_PM.ismulticonductor(pm, n) for n in nws)
 
     return JuMP.@objective(pm.model, Min,
         sum(

@@ -1,9 +1,5 @@
 using PowerModelsAnnex
-using Unitful
-using PowerSystemsUnits
 PMA = PowerModelsAnnex
-
-Unitful.register(PowerSystemsUnits)
 
 using JuMP
 using PowerModels
@@ -47,7 +43,5 @@ case_file_pwl = "$(pms_path)/test/data/matpower/case5_pwlc.m"
     include("pglib/sad.jl")
 
     include("piecewise-linear.jl")
-
-    include("frontend/frontend.jl")
 
 end
