@@ -41,32 +41,13 @@ end
 
 ""
 function objective_min_fuel_cost_lambda(pm::_PM.AbstractPowerModel; kwargs...)
-    nl_gen = _PM.check_nl_gen_cost_models(pm)
-
-    nl = nl_gen || typeof(pm) <: _PM.AbstractIVRModel
-
     expression_pg_cost_lambda(pm; kwargs...)
 
-    if !nl
-        return JuMP.@objective(pm.model, Min,
-            sum(
-                sum( var(pm, n, :pg_cost, i) for (i,gen) in nw_ref[:gen])
-            for (n, nw_ref) in _PM.nws(pm))
-        )
-    else
-        pg_cost = Dict()
-        for (n, nw_ref) in nws(pm)
-            for (i,gen) in nw_ref[:gen]
-                pg_cost[(n,i)] = var(pm, n, :pg_cost, i)
-            end
-        end
-
-        return JuMP.@NLobjective(pm.model, Min,
-            sum(
-                sum( pg_cost[n,i] for (i,gen) in nw_ref[:gen])
-            for (n, nw_ref) in _PM.nws(pm))
-        )
-    end
+    return JuMP.@objective(pm.model, Min,
+        sum(
+            sum( var(pm, n, :pg_cost, i) for (i,gen) in nw_ref[:gen])
+        for (n, nw_ref) in _PM.nws(pm))
+    )
 end
 
 ""
@@ -104,7 +85,6 @@ end
 
 ""
 function _pwl_cost_expression_lambda(pm::_PM.AbstractPowerModel, x_list::Array{JuMP.VariableRef}, points; nw=0, id=1, var_name="x")
-
     pg_cost_lambda = JuMP.@variable(pm.model,
         [i in 1:length(points)], base_name="$(nw)_pg_$(id)_cost_lambda_$(i)",
         lower_bound = 0.0,
@@ -118,6 +98,5 @@ function _pwl_cost_expression_lambda(pm::_PM.AbstractPowerModel, x_list::Array{J
     JuMP.@constraint(pm.model, pg_expr == var(pm, nw, :pg, id))
 
     return pg_cost_expr
-
 end
 

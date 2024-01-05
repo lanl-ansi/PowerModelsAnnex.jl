@@ -4,6 +4,9 @@ PowerModelsAnnex.jl Change Log
 ### Staged
 - nothing
 
+### v0.11.0
+- Update PowerModels v0.21 and JuMP's new nonlinear interface (breaking)
+
 ### v0.10.0
 - Update PowerModels v0.20
 - Drop `frontend` directory, lack of maintenance on dependent packages

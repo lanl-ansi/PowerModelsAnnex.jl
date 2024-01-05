@@ -14,20 +14,20 @@ function _PM.constraint_model_voltage(pm::SOCWROAPowerModel, n::Int)
 
 
     for (i,j) in _PM.ids(pm, n, :buspairs)
-        @NLconstraint(pm.model, (wr[(i,j)]^2 + wi[(i,j)]^2)/w[j] <= w[i])
+        @constraint(pm.model, (wr[(i,j)]^2 + wi[(i,j)]^2)/w[j] <= w[i])
     end
 end
 
 function _PM.constraint_thermal_limit_from(pm::SOCWROAPowerModel, n::Int, f_idx, rate_a)
     p_fr = var(pm, n, :p, f_idx)
     q_fr = var(pm, n, :q, f_idx)
-    @NLconstraint(pm.model, sqrt(p_fr^2 + q_fr^2) <= rate_a)
+    @constraint(pm.model, sqrt(p_fr^2 + q_fr^2) <= rate_a)
 end
 
 function _PM.constraint_thermal_limit_to(pm::SOCWROAPowerModel, n::Int, t_idx, rate_a)
     p_to = var(pm, n, :p, t_idx)
     q_to = var(pm, n, :q, t_idx)
-    @NLconstraint(pm.model, sqrt(p_to^2 + q_to^2) <= rate_a)
+    @constraint(pm.model, sqrt(p_to^2 + q_to^2) <= rate_a)
 end
 
 

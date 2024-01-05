@@ -41,32 +41,13 @@ end
 
 ""
 function objective_min_fuel_cost_delta(pm::_PM.AbstractPowerModel; kwargs...)
-    nl_gen = _PM.check_nl_gen_cost_models(pm)
-
-    nl = nl_gen || typeof(pm) <: _PM.AbstractIVRModel
-
     expression_pg_cost_delta(pm; kwargs...)
 
-    if !nl
-        return JuMP.@objective(pm.model, Min,
-            sum(
-                sum( var(pm, n, :pg_cost, i) for (i,gen) in nw_ref[:gen])
-            for (n, nw_ref) in _PM.nws(pm))
-        )
-    else
-        pg_cost = Dict()
-        for (n, nw_ref) in nws(pm)
-            for (i,gen) in nw_ref[:gen]
-                pg_cost[(n,i)] = var(pm, n, :pg_cost, i)
-            end
-        end
-
-        return JuMP.@NLobjective(pm.model, Min,
-            sum(
-                sum( pg_cost[n,i] for (i,gen) in nw_ref[:gen])
-            for (n, nw_ref) in _PM.nws(pm))
-        )
-    end
+    return JuMP.@objective(pm.model, Min,
+        sum(
+            sum( var(pm, n, :pg_cost, i) for (i,gen) in nw_ref[:gen])
+        for (n, nw_ref) in _PM.nws(pm))
+    )
 end
 
 ""
@@ -104,7 +85,6 @@ end
 
 ""
 function _pwl_cost_expression_delta(pm::_PM.AbstractPowerModel, x_list::Array{JuMP.VariableRef}, points; nw=0, id=1, var_name="x")
-
     cost_per_mw = Float64[0.0]
     for i in 2:length(points)
         x0 = points[i-1].mw
@@ -131,6 +111,5 @@ function _pwl_cost_expression_delta(pm::_PM.AbstractPowerModel, x_list::Array{Ju
     cost_expr = points[1].cost + sum(cost_per_mw[i]*pg_cost_mw[i] for i in 2:length(points))
 
     return cost_expr
-
 end
 
