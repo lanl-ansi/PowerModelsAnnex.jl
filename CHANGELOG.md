@@ -5,7 +5,7 @@ PowerModelsAnnex.jl Change Log
 - nothing
 
 ### v0.11.0
-- Update PowerModels v0.21 and JuMP's new nonlinear interface (breaking)
+- Update to PowerModels v0.21 and JuMP's new nonlinear interface (breaking)
 
 ### v0.10.0
 - Update PowerModels v0.20
