@@ -41,11 +41,11 @@ function build_ac_pf(data::Dict{String,Any}, model=Model())
         b_to = branch["b_to"]
         tm = branch["tap"]^2
 
-        p[f_idx] = @NLexpression(model,  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
-        q[f_idx] = @NLexpression(model, -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        p[f_idx] = @expression(model,  (g+g_fr)/tm*vm_fr^2 + (-g*tr+b*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-b*tr-g*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
+        q[f_idx] = @expression(model, -(b+b_fr)/tm*vm_fr^2 - (-b*tr-g*ti)/tm*(vm_fr*vm_to*cos(va_fr-va_to)) + (-g*tr+b*ti)/tm*(vm_fr*vm_to*sin(va_fr-va_to)) )
 
-        p[t_idx] = @NLexpression(model,  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
-        q[t_idx] = @NLexpression(model, -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        p[t_idx] = @expression(model,  (g+g_to)*vm_to^2 + (-g*tr-b*ti)/tm*(vm_to*vm_fr*cos(va_to-va_fr)) + (-b*tr+g*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
+        q[t_idx] = @expression(model, -(b+b_to)*vm_to^2 - (-b*tr+g*ti)/tm*(vm_to*vm_fr*cos(va_fr-va_to)) + (-g*tr-b*ti)/tm*(vm_to*vm_fr*sin(va_to-va_fr)) )
     end
 
 
@@ -61,7 +61,7 @@ function build_ac_pf(data::Dict{String,Any}, model=Model())
         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
         # Bus KCL
-        @NLconstraint(model,
+        @constraint(model,
             sum(p[a] for a in ref[:bus_arcs][i]) +
             sum(p_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(pg[g] for g in ref[:bus_gens][i]) -
@@ -69,7 +69,7 @@ function build_ac_pf(data::Dict{String,Any}, model=Model())
             sum(shunt["gs"] for shunt in bus_shunts)*vm[i]^2
         )
 
-        @NLconstraint(model,
+        @constraint(model,
             sum(q[a] for a in ref[:bus_arcs][i]) +
             sum(q_dc[a_dc] for a_dc in ref[:bus_arcs_dc][i]) ==
             sum(qg[g] for g in ref[:bus_gens][i]) -

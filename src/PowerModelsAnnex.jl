@@ -1,7 +1,7 @@
 module PowerModelsAnnex
 
 import JuMP
-import JuMP: @variable, @constraint, @NLexpression, @NLconstraint, @objective, @NLobjective, @expression, optimize!, Model
+import JuMP: @variable, @constraint, @objective, @expression, optimize!, Model
 
 import InfrastructureModels; const _IM = InfrastructureModels
 

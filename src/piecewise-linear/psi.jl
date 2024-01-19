@@ -41,32 +41,13 @@ end
 
 ""
 function objective_min_fuel_cost_psi(pm::_PM.AbstractPowerModel; kwargs...)
-    nl_gen = _PM.check_nl_gen_cost_models(pm)
-
-    nl = nl_gen || typeof(pm) <: _PM.AbstractIVRModel
-
     expression_pg_cost_psi(pm; kwargs...)
 
-    if !nl
-        return JuMP.@objective(pm.model, Min,
-            sum(
-                sum( var(pm, n, :pg_cost, i) for (i,gen) in nw_ref[:gen])
-            for (n, nw_ref) in _PM.nws(pm))
-        )
-    else
-        pg_cost = Dict()
-        for (n, nw_ref) in nws(pm)
-            for (i,gen) in nw_ref[:gen]
-                pg_cost[(n,i)] = var(pm, n, :pg_cost, i)
-            end
-        end
-
-        return JuMP.@NLobjective(pm.model, Min,
-            sum(
-                sum( pg_cost[n,i] for (i,gen) in nw_ref[:gen])
-            for (n, nw_ref) in _PM.nws(pm))
-        )
-    end
+    return JuMP.@objective(pm.model, Min,
+        sum(
+            sum( var(pm, n, :pg_cost, i) for (i,gen) in nw_ref[:gen])
+        for (n, nw_ref) in _PM.nws(pm))
+    )
 end
 
 ""
@@ -104,7 +85,6 @@ end
 
 ""
 function _pwl_cost_expression_psi(pm::_PM.AbstractPowerModel, x_list::Array{JuMP.VariableRef}, points; nw=0, id=1, var_name="x")
-
     gen_lines = []
     for j in 2:length(points)
         x1 = points[j-1].mw
@@ -135,6 +115,5 @@ function _pwl_cost_expression_psi(pm::_PM.AbstractPowerModel, x_list::Array{JuMP
     end
 
     return pg_cost
-
 end
 
